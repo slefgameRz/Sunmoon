@@ -21,22 +21,29 @@ type WeatherData = {
   name: string
 }
 
-// Function to simulate fetching tide data
-export async function getTideData(location: { lat: number; lon: number }): Promise<TideData> {
+// Function to simulate fetching tide data based on a specific date
+export async function getTideData(location: { lat: number; lon: number }, date: Date): Promise<TideData> {
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 500))
 
-  // In a real scenario, you'd use 'location' to fetch specific tide data.
-  // For this example, we'll return static mock data.
   const today = new Date()
-  const dayOfMonth = today.getDate()
+  today.setHours(0, 0, 0, 0) // Normalize to start of day
+  date.setHours(0, 0, 0, 0) // Normalize to start of day
 
-  // Simple logic to simulate changing tide data based on day
-  const isWaxing = dayOfMonth % 2 === 0 // Alternating for demo
-  const tideType = dayOfMonth % 7 === 0 ? "น้ำเป็น" : "น้ำตาย" // Spring/Neap every 7 days
-  const highTide = `0${(dayOfMonth % 12) + 6}:30 น.` // Example times
-  const lowTide = `${(dayOfMonth % 12) + 16}:45 น.`
-  const isHighToday = dayOfMonth % 3 === 0 // Simulate high sea level rise every 3 days
+  const diffTime = Math.abs(date.getTime() - today.getTime())
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  // Simple logic to simulate changing tide data based on the selected date
+  const isWaxing = diffDays % 2 === 0 // Alternating based on day difference
+  const tideType = diffDays % 7 === 0 ? "น้ำเป็น" : "น้ำตาย" // Spring/Neap every 7 days based on diff
+
+  // Generate high/low tide times that change slightly with date
+  const highHour = (date.getDate() % 12) + 6
+  const lowHour = (date.getDate() % 12) + 16
+  const highTide = `${String(highHour).padStart(2, "0")}:30 น.`
+  const lowTide = `${String(lowHour).padStart(2, "0")}:45 น.`
+
+  const isHighToday = diffDays % 3 === 0 // Simulate high sea level rise every 3 days based on diff
 
   let waterLevel = 2.5 + (isHighToday ? 0.3 : 0) + (tideType === "น้ำเป็น" ? 0.2 : 0)
   waterLevel = Number.parseFloat(waterLevel.toFixed(1)) // Round to 1 decimal place
@@ -67,6 +74,8 @@ async function getWeatherData(lat: number, lon: number): Promise<WeatherData | n
     return null
   }
 
+  // NOTE: OpenWeatherMap's free tier only provides current weather data.
+  // Historical or future weather forecasts would require a paid plan or a different API.
   const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=th`
 
   try {
@@ -95,11 +104,12 @@ export type ForecastResult = {
   error?: string
 }
 
-export async function getLocationForecast(location: LocationData): Promise<ForecastResult> {
+export async function getLocationForecast(location: LocationData, date: Date): Promise<ForecastResult> {
   try {
+    // Weather data is always current for the location due to API limitations
     const [weatherData, tideData] = await Promise.all([
       getWeatherData(location.lat, location.lon),
-      getTideData(location),
+      getTideData(location, date), // Pass the selected date to tide data
     ])
     return { tideData, weatherData }
   } catch (error) {

@@ -2,6 +2,7 @@ import type React from "react"
 import { Sarabun } from "next/font/google"
 import type { Metadata } from "next"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider" // Import ThemeProvider
 
 const sarabun = Sarabun({
   subsets: ["thai", "latin"],
@@ -21,8 +22,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={sarabun.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      {/* Add suppressHydrationWarning for next-themes */}
+      <body className={sarabun.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

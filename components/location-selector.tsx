@@ -38,19 +38,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog"
-
-// Predefined locations (kept for reference, but not used in dropdown anymore)
-const locations: LocationData[] = [
-  { lat: 13.7563, lon: 100.5018, name: "กรุงเทพมหานคร" },
-  { lat: 7.8804, lon: 98.3923, name: "ภูเก็ต" },
-  { lat: 12.9236, lon: 100.8825, name: "พัทยา" },
-  { lat: 18.7883, lon: 98.9873, name: "เชียงใหม่" },
-  { lat: 7.0, lon: 100.47, name: "สงขลา" },
-  { lat: 8.43, lon: 99.96, name: "สุราษฎร์ธานี" },
-  { lat: 13.1, lon: 100.9, name: "ชลบุรี" },
-]
+import MapSelector from "./map-selector" // Import the new MapSelector component
 
 // Default values if API calls fail
 const defaultTideData = {
@@ -66,7 +55,7 @@ const defaultTideData = {
   seaLevelRiseReference: "ไม่ทราบแหล่งอ้างอิง",
   pierDistance: 0,
   pierReference: "ไม่ทราบแหล่งอ้างอิง",
-  tideEvents: [],
+  tideEvents: [], // Initialize as empty array
 }
 
 const defaultWeatherData = {
@@ -85,7 +74,8 @@ export default function LocationSelector() {
         return JSON.parse(savedLocation)
       }
     }
-    return locations[0] // Default to Bangkok
+    // Default to Bangkok coordinates if no saved location
+    return { lat: 13.7563, lon: 100.5018, name: "กรุงเทพมหานคร" }
   })
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date()) // State for selected date
   const [selectedHour, setSelectedHour] = useState<string>(String(new Date().getHours()).padStart(2, "0")) // State for selected hour
@@ -242,38 +232,20 @@ export default function LocationSelector() {
                   เลือกจากแผนที่
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:text-white">
+              <DialogContent className="sm:max-w-[600px] dark:bg-gray-800 dark:text-white">
                 <DialogHeader>
                   <DialogTitle>เลือกตำแหน่งจากแผนที่</DialogTitle>
-                  <DialogDescription>
-                    นี่คือการจำลองการเลือกตำแหน่งจากแผนที่ ในการใช้งานจริงจะต้องมีการผสานรวมกับ Google Maps API.
-                  </DialogDescription>
+                  <DialogDescription>ลากหมุดหรือคลิกบนแผนที่เพื่อเลือกตำแหน่ง หรือใช้ช่องค้นหา</DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-2 gap-4 py-4">
-                  {locations.map((loc) => (
-                    <Button
-                      key={loc.name}
-                      variant="outline"
-                      className="flex flex-col h-auto py-4 items-center justify-center text-center bg-transparent"
-                      onClick={() => {
-                        setSelectedLocation(loc)
-                        localStorage.setItem("preferredLocation", JSON.stringify(loc))
-                        setIsMapDialogOpen(false)
-                      }}
-                    >
-                      <MapPin className="h-5 w-5 mb-2" />
-                      <span className="font-semibold">{loc.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {loc.lat.toFixed(2)}, {loc.lon.toFixed(2)}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-                <DialogFooter>
-                  <Button onClick={() => setIsMapDialogOpen(false)} variant="secondary">
-                    ยกเลิก
-                  </Button>
-                </DialogFooter>
+                <MapSelector
+                  currentLocation={selectedLocation}
+                  onSelectLocation={(newLocation) => {
+                    setSelectedLocation(newLocation)
+                    localStorage.setItem("preferredLocation", JSON.stringify(newLocation))
+                    setIsMapDialogOpen(false)
+                  }}
+                  onClose={() => setIsMapDialogOpen(false)}
+                />
               </DialogContent>
             </Dialog>
 

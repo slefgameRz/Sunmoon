@@ -1,49 +1,38 @@
-// In a real application, this would fetch data from a tide prediction API.
-// For demonstration, we'll simulate an API call.
-
-export type TideData = {
-  isWaxingMoon: boolean // ข้างขึ้น (waxing) or ข้างแรม (waning)
-  tideStatus: "น้ำเป็น" | "น้ำตาย" // น้ำเป็น (spring tide) or น้ำตาย (neap tide)
-  highTideTime: string
-  lowTideTime: string
-  isSeaLevelHighToday: boolean // วันนี้หนุนสูงมั้ย
-  currentWaterLevel: number // meters
-  waterLevelStatus: string // e.g., "ระดับน้ำปกติ", "ระดับน้ำสูงเล็กน้อย", "ระดับน้ำต่ำ"
+// This file is not directly used in the current implementation but could be for more complex tide calculations.
+// For now, tide data is simulated directly in get-location-forecast.ts.
+export type TideInfo = {
+  time: string
+  level: number
+  type: "high" | "low"
 }
 
-export async function getTideData(location: { lat: number; lon: number }): Promise<TideData> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+export function calculateTides(date: Date, location: { lat: number; lon: number }): TideInfo[] {
+  // This is a placeholder for a real tide calculation or API call
+  // In a real application, you would integrate with a tide prediction API or complex algorithms.
+  const tides: TideInfo[] = []
+  const baseHour = date.getHours()
 
-  // In a real scenario, you'd use 'location' to fetch specific tide data.
-  // For this example, we'll return static mock data.
-  const today = new Date()
-  const dayOfMonth = today.getDate()
+  // Simulate 2 high tides and 2 low tides per day
+  tides.push({
+    time: `${String((baseHour + 6) % 24).padStart(2, "0")}:30`,
+    level: 3.5 + Math.random() * 0.5,
+    type: "high",
+  })
+  tides.push({
+    time: `${String((baseHour + 12) % 24).padStart(2, "0")}:45`,
+    level: 0.8 + Math.random() * 0.2,
+    type: "low",
+  })
+  tides.push({
+    time: `${String((baseHour + 18) % 24).padStart(2, "0")}:15`,
+    level: 3.2 + Math.random() * 0.4,
+    type: "high",
+  })
+  tides.push({
+    time: `${String((baseHour + 24) % 24).padStart(2, "0")}:00`,
+    level: 0.9 + Math.random() * 0.3,
+    type: "low",
+  })
 
-  // Simple logic to simulate changing tide data based on day
-  const isWaxing = dayOfMonth % 2 === 0 // Alternating for demo
-  const tideType = dayOfMonth % 7 === 0 ? "น้ำเป็น" : "น้ำตาย" // Spring/Neap every 7 days
-  const highTide = `0${(dayOfMonth % 12) + 6}:30 น.` // Example times
-  const lowTide = `${(dayOfMonth % 12) + 16}:45 น.`
-  const isHighToday = dayOfMonth % 3 === 0 // Simulate high sea level rise every 3 days
-
-  let waterLevel = 2.5 + (isHighToday ? 0.3 : 0) + (tideType === "น้ำเป็น" ? 0.2 : 0)
-  waterLevel = Number.parseFloat(waterLevel.toFixed(1)) // Round to 1 decimal place
-
-  let waterStatus = "ระดับน้ำปกติ"
-  if (waterLevel > 2.8) {
-    waterStatus = "ระดับน้ำสูงเล็กน้อย"
-  } else if (waterLevel < 2.3) {
-    waterStatus = "ระดับน้ำต่ำ"
-  }
-
-  return {
-    isWaxingMoon: isWaxing,
-    tideStatus: tideType,
-    highTideTime: highTide,
-    lowTideTime: lowTide,
-    isSeaLevelHighToday: isHighToday,
-    currentWaterLevel: waterLevel,
-    waterLevelStatus: waterStatus,
-  }
+  return tides.sort((a, b) => a.time.localeCompare(b.time))
 }

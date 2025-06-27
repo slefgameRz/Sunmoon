@@ -1,30 +1,61 @@
-# Thai weather app
+# Thai Weather App
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+This is a Next.js application for displaying weather and tide information in Thailand.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/50645-3599s-projects/v0-thai-weather-app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/5jPdNTnzm86)
+## Features
 
-## Overview
+-   Current weather data (temperature, humidity, wind, pressure)
+-   Tide information (waxing/waning moon, spring/neap tide, high/low tide times, current water level)
+-   Location selection (current location or simulated map selection)
+-   Date and time selection for tide forecasts
+-   Responsive design
+-   Dark mode toggle
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+## Getting Started
 
-## Deployment
+1.  **Clone the repository:**
+    \`\`\`bash
+    git clone <repository-url>
+    cd thai-weather-app
+    \`\`\`
 
-Your project is live at:
+2.  **Install dependencies:**
+    \`\`\`bash
+    npm install
+    # or
+    yarn install
+    \`\`\`
 
-**[https://vercel.com/50645-3599s-projects/v0-thai-weather-app](https://vercel.com/50645-3599s-projects/v0-thai-weather-app)**
+3.  **Set up Environment Variables:**
+    This project uses the OpenWeatherMap API. You'll need to get an API key from [OpenWeatherMap](https://openweathermap.org/api).
 
-## Build your app
+    Create a `.env.local` file in the root of your project and add your API key:
+    \`\`\`
+    OPENWEATHER_API_KEY=your_openweathermap_api_key_here
+    \`\`\`
 
-Continue building your app on:
+4.  **Run the development server:**
+    \`\`\`bash
+    npm run dev
+    # or
+    yarn dev
+    \`\`\`
 
-**[https://v0.dev/chat/projects/5jPdNTnzm86](https://v0.dev/chat/projects/5jPdNTnzm86)**
+    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## How It Works
+## Project Structure
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+-   `app/`: Next.js App Router pages and layout.
+-   `actions/`: Server Actions for data fetching (e.g., `get-location-forecast.ts`).
+-   `components/`: Reusable React components, including Shadcn UI components.
+-   `lib/`: Utility functions (e.g., `utils.ts` for `cn` function).
+-   `public/`: Static assets.
+-   `styles/`: Global CSS.
+
+## API Limitations
+
+Please note that the free tier of OpenWeatherMap API only provides current weather data. Therefore, the "Significant Advance Forecast" section for weather will always display current conditions. For historical or future weather forecasts with specific times, a paid plan or a different API would be required.
+
+## Contributing
+
+Feel free to contribute by opening issues or pull requests.

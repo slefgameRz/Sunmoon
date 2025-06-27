@@ -21,6 +21,7 @@ import {
   Gauge,
   CalendarIcon,
   Moon,
+  Clock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -30,8 +31,17 @@ import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { th } from "date-fns/locale" // Import Thai locale for date-fns
 import { useTheme } from "next-themes" // Import useTheme hook
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
-// Predefined locations
+// Predefined locations (kept for reference, but not used in dropdown anymore)
 const locations: LocationData[] = [
   { lat: 13.7563, lon: 100.5018, name: "กรุงเทพมหานคร" },
   { lat: 7.8804, lon: 98.3923, name: "ภูเก็ต" },
@@ -42,12 +52,18 @@ const locations: LocationData[] = [
 // Default values if API calls fail
 const defaultTideData = {
   isWaxingMoon: true,
+  lunarPhaseKham: 0,
   tideStatus: "ไม่ทราบ" as "น้ำเป็น" | "น้ำตาย",
   highTideTime: "N/A",
-  lowTideTime: "N-A",
+  lowTideTime: "N/A",
   isSeaLevelHighToday: false,
   currentWaterLevel: 0,
   waterLevelStatus: "ไม่ทราบ",
+  waterLevelReference: "ไม่ทราบแหล่งอ้างอิง",
+  seaLevelRiseReference: "ไม่ทราบแหล่งอ้างอิง",
+  pierDistance: 0,
+  pierReference: "ไม่ทราบแหล่งอ้างอิง",
+  tideEvents: [], // Initialize as empty array
 }
 
 const defaultWeatherData = {
@@ -69,18 +85,26 @@ export default function LocationSelector() {
     return locations[0] // Default to Bangkok
   })
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date()) // State for selected date
+  const [selectedHour, setSelectedHour] = useState<string>(String(new Date().getHours()).padStart(2, "0")) // State for selected hour
+  const [selectedMinute, setSelectedMinute] = useState<string>(
+    String(Math.floor(new Date().getMinutes() / 15) * 15).padStart(2, "0"),
+  ) // State for selected minute (rounded to nearest 15)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false) // State to control calendar popover
+  const [isMapDialogOpen, setIsMapDialogOpen] = useState(false) // State to control map dialog
   const [forecastData, setForecastData] = useState<ForecastResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [gettingLocation, setGettingLocation] = useState(false)
   const { theme, setTheme } = useTheme() // Hook for theme management
 
-  const fetchForecast = useCallback(async (location: LocationData, date: Date) => {
+  const fetchForecast = useCallback(async (location: LocationData, date: Date, hour: string, minute: string) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await getLocationForecast(location, date)
+      const result = await getLocationForecast(location, date, {
+        hour: Number.parseInt(hour),
+        minute: Number.parseInt(minute),
+      })
       setForecastData(result)
       if (result.error) {
         setError(result.error)
@@ -129,15 +153,21 @@ export default function LocationSelector() {
   useEffect(() => {
     if (selectedLocation && selectedDate) {
       localStorage.setItem("preferredLocation", JSON.stringify(selectedLocation))
-      fetchForecast(selectedLocation, selectedDate)
+      fetchForecast(selectedLocation, selectedDate, selectedHour, selectedMinute)
     }
-  }, [selectedLocation, selectedDate, fetchForecast])
+  }, [selectedLocation, selectedDate, selectedHour, selectedMinute, fetchForecast])
 
   const formattedDate = selectedDate ? format(selectedDate, "EEEE, d MMMM yyyy", { locale: th }) : "เลือกวันที่"
-  const formattedTime = selectedDate ? format(selectedDate, "HH:mm น.", { locale: th }) : "N/A"
+  const formattedTime = `${selectedHour}:${selectedMinute} น.`
 
   const currentTideData = forecastData?.tideData || defaultTideData
   const currentWeatherData = forecastData?.weatherData || defaultWeatherData
+
+  // Calculate tide range (max high - min low)
+  const tideLevels = currentTideData.tideEvents.map((event) => event.level)
+  const maxTideLevel = tideLevels.length > 0 ? Math.max(...tideLevels) : 0
+  const minTideLevel = tideLevels.length > 0 ? Math.min(...tideLevels) : 0
+  const tideRange = Number.parseFloat((maxTideLevel - minTideLevel).toFixed(2))
 
   // Map OpenWeatherMap icon to Lucide icon (simplified)
   const getWeatherIcon = (iconCode: string) => {
@@ -176,10 +206,10 @@ export default function LocationSelector() {
         <div className="container mx-auto flex flex-col items-center justify-center">
           <div className="text-center mb-6">
             <h1 className="text-3xl lg:text-4xl font-bold mb-2">🌊 พยากรณ์น้ำและอากาศ</h1>
-            <p className="text-blue-100 text-lg">ข้อมูลครบครันเกี่ยวกับน้ำขึ้นน้ำลง สภาพอากาศ และระดับน้ำทะเล</p>
+            <p className="text-blue-100 text-lg dark:text-gray-300">ข้อมูลครบครันเกี่ยวกับน้ำขึ้นน้ำลง สภาพอากาศ และระดับน้ำทะเล</p>
           </div>
 
-          {/* Location and Date Controls */}
+          {/* Location and Date/Time Controls */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
             <Button
               onClick={getCurrentLocation}
@@ -194,27 +224,49 @@ export default function LocationSelector() {
               ใช้ตำแหน่งปัจจุบัน
             </Button>
 
-            <div className="flex items-center gap-2">
-              <span className="text-blue-100 dark:text-gray-300">หรือเลือก:</span>
-              <Select
-                onValueChange={(value) => {
-                  const loc = locations.find((l) => l.name === value)
-                  if (loc) setSelectedLocation(loc)
-                }}
-                value={selectedLocation.name === "ตำแหน่งปัจจุบัน" ? "" : selectedLocation.name}
-              >
-                <SelectTrigger className="w-[180px] bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600">
-                  <SelectValue placeholder="เลือกจังหวัด" />
-                </SelectTrigger>
-                <SelectContent className="dark:bg-gray-700 dark:text-white">
-                  {locations.map((loc) => (
-                    <SelectItem key={loc.name} value={loc.name}>
-                      {loc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Map Selection Dialog */}
+            <Dialog open={isMapDialogOpen} onOpenChange={setIsMapDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className="w-[180px] justify-start text-left font-normal bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600"
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  เลือกจากแผนที่
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:text-white">
+                <DialogHeader>
+                  <DialogTitle>เลือกตำแหน่งจากแผนที่</DialogTitle>
+                  <DialogDescription>
+                    นี่คือการจำลองการเลือกตำแหน่งจากแผนที่ ในการใช้งานจริงจะต้องมีการผสานรวมกับ Google Maps API.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="aspect-video w-full rounded-md bg-gray-200 flex items-center justify-center text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                    <MapPin className="h-12 w-12" />
+                    <span className="ml-2">แผนที่จำลอง</span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    หากเป็นแผนที่จริง คุณจะสามารถลากหมุดหรือคลิกเพื่อเลือกตำแหน่งได้
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button
+                    onClick={() => {
+                      setSelectedLocation({ lat: 12.9236, lon: 100.8825, name: "พัทยา (จำลอง)" }) // Simulate selecting Pattaya
+                      localStorage.setItem(
+                        "preferredLocation",
+                        JSON.stringify({ lat: 12.9236, lon: 100.8825, name: "พัทยา (จำลอง)" }),
+                      )
+                      setIsMapDialogOpen(false)
+                    }}
+                  >
+                    เลือกตำแหน่งนี้ (พัทยา)
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* Date Picker */}
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
@@ -243,6 +295,36 @@ export default function LocationSelector() {
                 />
               </PopoverContent>
             </Popover>
+
+            {/* Time Picker */}
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-blue-100 dark:text-gray-300" />
+              <Select onValueChange={setSelectedHour} value={selectedHour}>
+                <SelectTrigger className="w-[80px] bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600">
+                  <SelectValue placeholder="ชั่วโมง" />
+                </SelectTrigger>
+                <SelectContent className="dark:bg-gray-700 dark:text-white">
+                  {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((hour) => (
+                    <SelectItem key={hour} value={hour}>
+                      {hour}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-blue-100 dark:text-gray-300">:</span>
+              <Select onValueChange={setSelectedMinute} value={selectedMinute}>
+                <SelectTrigger className="w-[80px] bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600">
+                  <SelectValue placeholder="นาที" />
+                </SelectTrigger>
+                <SelectContent className="dark:bg-gray-700 dark:text-white">
+                  {["00", "15", "30", "45"].map((minute) => (
+                    <SelectItem key={minute} value={minute}>
+                      {minute}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Current Location Display */}
@@ -267,6 +349,22 @@ export default function LocationSelector() {
 
       {/* Main Content - Consolidated Summary */}
       <div className="container mx-auto px-4 py-8">
+        {/* Simple Alert Card - Moved to top */}
+        <Card className="bg-yellow-50 border border-yellow-200 shadow-lg rounded-2xl mb-6 dark:bg-yellow-950 dark:border-yellow-800">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-6 w-6 text-yellow-600 flex-shrink-0 mt-1 dark:text-yellow-400" />
+              <div>
+                <h3 className="font-bold text-yellow-800 mb-1 dark:text-yellow-300">การแจ้งเตือน</h3>
+                <p className="text-yellow-700 dark:text-yellow-400">ไม่มีการแจ้งเตือนสภาพอากาศพิเศษในขณะนี้</p>
+                <p className="text-yellow-700 text-sm mt-1 dark:text-yellow-400">
+                  {""}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64 bg-white rounded-2xl shadow-lg dark:bg-gray-800">
             <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4 dark:text-blue-400" />
@@ -277,7 +375,9 @@ export default function LocationSelector() {
             <AlertCircle className="h-12 w-12 text-red-500 mb-4 dark:text-red-400" />
             <span className="text-lg text-red-600 font-medium text-center dark:text-red-300">{error}</span>
             <Button
-              onClick={() => selectedDate && fetchForecast(selectedLocation, selectedDate)}
+              onClick={() =>
+                selectedDate && fetchForecast(selectedLocation, selectedDate, selectedHour, selectedMinute)
+              }
               className="mt-4 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
               variant="outline"
             >
@@ -314,7 +414,8 @@ export default function LocationSelector() {
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg dark:bg-gray-700">
                   <span className="font-medium text-slate-700 dark:text-gray-300">น้ำขึ้นน้ำลง:</span>
                   <span className="font-semibold text-slate-900 dark:text-gray-100">
-                    {currentTideData.tideStatus} ({currentTideData.isWaxingMoon ? "ข้างขึ้น" : "ข้างแรม"})
+                    {currentTideData.tideStatus} ({currentTideData.isWaxingMoon ? "ข้างขึ้น" : "ข้างแรม"}{" "}
+                    {currentTideData.lunarPhaseKham} ค่ำ)
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg dark:bg-gray-700">
@@ -412,7 +513,7 @@ export default function LocationSelector() {
                       variant="outline"
                       className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700"
                     >
-                      {currentTideData.isWaxingMoon ? "ข้างขึ้น" : "ข้างแรม"}
+                      {currentTideData.isWaxingMoon ? "ข้างขึ้น" : "ข้างแรม"} {currentTideData.lunarPhaseKham} ค่ำ
                     </Badge>
                   </div>
                   <div className="mt-2 flex justify-between items-center">
@@ -427,6 +528,10 @@ export default function LocationSelector() {
                     >
                       {currentTideData.tideStatus}
                     </Badge>
+                  </div>
+                  <div className="mt-2 flex justify-between items-center">
+                    <span className="font-medium text-slate-700 dark:text-gray-300">ระยะการขึ้นลงของน้ำ:</span>
+                    <span className="font-semibold text-slate-900 dark:text-gray-100">{tideRange.toFixed(2)} ม.</span>
                   </div>
                 </CardContent>
               </Card>
@@ -461,20 +566,60 @@ export default function LocationSelector() {
                       {currentTideData.isSeaLevelHighToday ? "หนุนสูงมาก" : "ระดับปกติ"}
                     </Badge>
                   </div>
+                  <div className="mt-2 flex justify-between items-center p-3 bg-slate-50 rounded-lg dark:bg-gray-700">
+                    <span className="font-medium text-slate-700 dark:text-gray-300">ระยะห่างจากท่าเรือ:</span>
+                    <span className="font-semibold text-slate-900 dark:text-gray-100">
+                      {currentTideData.pierDistance} ม.
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2 dark:text-gray-400">
+                    อ้างอิง: {currentTideData.seaLevelRiseReference}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 dark:text-gray-400">
+                    ระดับน้ำอ้างอิง: {currentTideData.waterLevelReference}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 dark:text-gray-400">
+                    ระยะห่างท่าเรืออ้างอิง: {currentTideData.pierReference}
+                  </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Simple Alert Card */}
-            <Card className="bg-yellow-50 border border-yellow-200 shadow-lg rounded-2xl dark:bg-yellow-950 dark:border-yellow-800">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-6 w-6 text-yellow-600 flex-shrink-0 mt-1 dark:text-yellow-400" />
-                  <div>
-                    <h3 className="font-bold text-yellow-800 mb-1 dark:text-yellow-300">การแจ้งเตือน</h3>
-                    <p className="text-yellow-700 dark:text-yellow-400">ไม่มีการแจ้งเตือนสภาพอากาศพิเศษในขณะนี้</p>
+            {/* Significant Advance Forecast Section */}
+            <Card className="bg-white shadow-lg border-0 rounded-2xl dark:bg-gray-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-semibold text-slate-800 dark:text-gray-200">
+                  พยากรณ์น้ำขึ้นน้ำลงสำคัญประจำวัน
+                </CardTitle>
+                <Waves className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </CardHeader>
+              <CardContent className="pt-4">
+                {currentTideData.tideEvents.length > 0 ? (
+                  <div className="space-y-3">
+                    {currentTideData.tideEvents.map((event, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg dark:bg-gray-700"
+                      >
+                        <div className="flex items-center gap-2">
+                          {event.type === "high" ? (
+                            <ArrowUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <ArrowDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+                          )}
+                          <span className="font-medium text-slate-700 dark:text-gray-300">
+                            {event.type === "high" ? "น้ำขึ้นสูงสุด" : "น้ำลงต่ำสุด"}
+                          </span>
+                        </div>
+                        <span className="text-lg font-bold text-slate-900 dark:text-gray-100">
+                          {event.time} ({event.level} ม.)
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-slate-600 dark:text-gray-300">ไม่มีข้อมูลพยากรณ์น้ำขึ้นน้ำลงสำคัญสำหรับวันนี้</p>
+                )}
               </CardContent>
             </Card>
           </div>

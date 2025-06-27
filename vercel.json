@@ -1,0 +1,4 @@
+{
+  // Disable frozen-lockfile during the install step on Vercel
+  "installCommand": "pnpm install --no-frozen-lockfile"
+}

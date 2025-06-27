@@ -47,6 +47,9 @@ const locations: LocationData[] = [
   { lat: 7.8804, lon: 98.3923, name: "ภูเก็ต" },
   { lat: 12.9236, lon: 100.8825, name: "พัทยา" },
   { lat: 18.7883, lon: 98.9873, name: "เชียงใหม่" },
+  { lat: 7.0, lon: 100.47, name: "สงขลา" },
+  { lat: 8.43, lon: 99.96, name: "สุราษฎร์ธานี" },
+  { lat: 13.1, lon: 100.9, name: "ชลบุรี" },
 ]
 
 // Default values if API calls fail
@@ -54,8 +57,8 @@ const defaultTideData = {
   isWaxingMoon: true,
   lunarPhaseKham: 0,
   tideStatus: "ไม่ทราบ" as "น้ำเป็น" | "น้ำตาย",
-  highTideTime: "N/A",
-  lowTideTime: "N/A",
+  highTideTime: "N/A", // Will be dynamically set from tideEvents
+  lowTideTime: "N/A", // Will be dynamically set from tideEvents
   isSeaLevelHighToday: false,
   currentWaterLevel: 0,
   waterLevelStatus: "ไม่ทราบ",
@@ -63,7 +66,7 @@ const defaultTideData = {
   seaLevelRiseReference: "ไม่ทราบแหล่งอ้างอิง",
   pierDistance: 0,
   pierReference: "ไม่ทราบแหล่งอ้างอิง",
-  tideEvents: [], // Initialize as empty array
+  tideEvents: [],
 }
 
 const defaultWeatherData = {
@@ -169,6 +172,10 @@ export default function LocationSelector() {
   const minTideLevel = tideLevels.length > 0 ? Math.min(...tideLevels) : 0
   const tideRange = Number.parseFloat((maxTideLevel - minTideLevel).toFixed(2))
 
+  // Find the first high and low tide events for display in the main card
+  const firstHighTide = currentTideData.tideEvents.find((event) => event.type === "high")
+  const firstLowTide = currentTideData.tideEvents.find((event) => event.type === "low")
+
   // Map OpenWeatherMap icon to Lucide icon (simplified)
   const getWeatherIcon = (iconCode: string) => {
     if (iconCode.includes("01")) return <Sun className="h-8 w-8 text-amber-500" />
@@ -242,27 +249,29 @@ export default function LocationSelector() {
                     นี่คือการจำลองการเลือกตำแหน่งจากแผนที่ ในการใช้งานจริงจะต้องมีการผสานรวมกับ Google Maps API.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="aspect-video w-full rounded-md bg-gray-200 flex items-center justify-center text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                    <MapPin className="h-12 w-12" />
-                    <span className="ml-2">แผนที่จำลอง</span>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    หากเป็นแผนที่จริง คุณจะสามารถลากหมุดหรือคลิกเพื่อเลือกตำแหน่งได้
-                  </p>
+                <div className="grid grid-cols-2 gap-4 py-4">
+                  {locations.map((loc) => (
+                    <Button
+                      key={loc.name}
+                      variant="outline"
+                      className="flex flex-col h-auto py-4 items-center justify-center text-center bg-transparent"
+                      onClick={() => {
+                        setSelectedLocation(loc)
+                        localStorage.setItem("preferredLocation", JSON.stringify(loc))
+                        setIsMapDialogOpen(false)
+                      }}
+                    >
+                      <MapPin className="h-5 w-5 mb-2" />
+                      <span className="font-semibold">{loc.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {loc.lat.toFixed(2)}, {loc.lon.toFixed(2)}
+                      </span>
+                    </Button>
+                  ))}
                 </div>
                 <DialogFooter>
-                  <Button
-                    onClick={() => {
-                      setSelectedLocation({ lat: 12.9236, lon: 100.8825, name: "พัทยา (จำลอง)" }) // Simulate selecting Pattaya
-                      localStorage.setItem(
-                        "preferredLocation",
-                        JSON.stringify({ lat: 12.9236, lon: 100.8825, name: "พัทยา (จำลอง)" }),
-                      )
-                      setIsMapDialogOpen(false)
-                    }}
-                  >
-                    เลือกตำแหน่งนี้ (พัทยา)
+                  <Button onClick={() => setIsMapDialogOpen(false)} variant="secondary">
+                    ยกเลิก
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -357,9 +366,6 @@ export default function LocationSelector() {
               <div>
                 <h3 className="font-bold text-yellow-800 mb-1 dark:text-yellow-300">การแจ้งเตือน</h3>
                 <p className="text-yellow-700 dark:text-yellow-400">ไม่มีการแจ้งเตือนสภาพอากาศพิเศษในขณะนี้</p>
-                <p className="text-yellow-700 text-sm mt-1 dark:text-yellow-400">
-                  {""}
-                </p>
               </div>
             </div>
           </CardContent>
@@ -494,7 +500,7 @@ export default function LocationSelector() {
                         <span className="text-slate-700 font-medium dark:text-gray-300">น้ำขึ้นสูงสุด</span>
                       </div>
                       <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                        {currentTideData.highTideTime}
+                        {firstHighTide ? `${firstHighTide.time} น. (${firstHighTide.level.toFixed(2)} ม.)` : "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg dark:bg-red-950">
@@ -503,7 +509,7 @@ export default function LocationSelector() {
                         <span className="text-slate-700 font-medium dark:text-gray-300">น้ำลงต่ำสุด</span>
                       </div>
                       <span className="text-2xl font-bold text-red-700 dark:text-red-300">
-                        {currentTideData.lowTideTime}
+                        {firstLowTide ? `${firstLowTide.time} น. (${firstLowTide.level.toFixed(2)} ม.)` : "N/A"}
                       </span>
                     </div>
                   </div>
@@ -612,7 +618,7 @@ export default function LocationSelector() {
                           </span>
                         </div>
                         <span className="text-lg font-bold text-slate-900 dark:text-gray-100">
-                          {event.time} ({event.level} ม.)
+                          {event.time} ({event.level.toFixed(2)} ม.)
                         </span>
                       </div>
                     ))}

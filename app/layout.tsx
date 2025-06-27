@@ -1,15 +1,18 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Sarabun } from "next/font/google" // Import Sarabun font
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ["latin"] })
+const sarabun = Sarabun({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["thai", "latin"],
+  variable: "--font-sarabun", // Define CSS variable for font
+})
 
 export const metadata: Metadata = {
   title: "Thai Weather App",
-  description: "Real-time weather and tide information for Thailand",
+  description: "Real-time weather and tide forecast for Thailand",
     generator: 'v0.dev'
 }
 
@@ -19,11 +22,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+    <html lang="th" suppressHydrationWarning>
+      <body className={`${sarabun.className} ${sarabun.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
-          <Toaster />
         </ThemeProvider>
       </body>
     </html>

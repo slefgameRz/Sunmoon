@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss"
+import { fontFamily } from "tailwindcss/defaultTheme" // Import defaultTheme
 
 const config = {
   darkMode: ["class"],
@@ -72,6 +73,9 @@ const config = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      fontFamily: {
+        sarabun: ["var(--font-sarabun)", ...fontFamily.sans], // Add Sarabun font
       },
     },
   },

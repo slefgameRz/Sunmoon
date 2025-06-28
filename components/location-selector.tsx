@@ -32,6 +32,7 @@ import { format } from "date-fns"
 import { th } from "date-fns/locale" // Import Thai locale for date-fns
 import { useTheme } from "next-themes" // Import useTheme hook
 import MapSelector from "./map-selector" // Import the new MapSelector component
+import TideAnimation from "./tide-animation" // Import the new TideAnimation component
 
 // Default values if API calls fail
 const defaultTideData = {
@@ -387,6 +388,24 @@ export default function LocationSelector() {
               </CardContent>
             </Card>
 
+            {/* Tide Animation Infographic */}
+            <Card className="bg-white shadow-lg border-0 rounded-2xl dark:bg-gray-800">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-800 dark:text-gray-200">
+                  กราฟิกระดับน้ำขึ้นน้ำลง
+                </CardTitle>
+                <CardDescription className="text-sm text-slate-600 dark:text-gray-400">
+                  แสดงระดับน้ำปัจจุบันและจุดน้ำขึ้นน้ำลงสูงสุด/ต่ำสุด
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <TideAnimation
+                  currentWaterLevel={currentTideData.currentWaterLevel}
+                  tideEvents={currentTideData.tideEvents}
+                />
+              </CardContent>
+            </Card>
+
             {/* Key Metrics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Weather Details */}
@@ -479,23 +498,23 @@ export default function LocationSelector() {
                 </CardContent>
               </Card>
 
-              {/* Sea Level Rise Status Card */}
+              {/* Sea Level Rise Status Card (Adjusted content to be more generic) */}
               <Card className="bg-white shadow-lg border-0 rounded-2xl dark:bg-gray-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-lg font-semibold text-slate-800 dark:text-gray-200">
-                    ระดับน้ำทะเลหนุน
+                    ข้อมูลอ้างอิงและสถานะ
                   </CardTitle>
-                  <ArrowUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <AlertCircle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
                 </CardHeader>
                 <CardContent className="pt-4 text-center">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-100 rounded-full mb-4 dark:bg-emerald-950">
-                    <Droplets className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-yellow-100 rounded-full mb-4 dark:bg-yellow-950">
+                    <Droplets className="h-10 w-10 text-yellow-600 dark:text-yellow-400" />
                   </div>
-                  <p className="text-4xl font-bold text-emerald-600 mb-2 dark:text-emerald-400">
-                    {currentTideData.currentWaterLevel} ม.
-                  </p>
-                  <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900 dark:text-emerald-200 dark:hover:bg-emerald-800">
+                  <p className="text-2xl font-bold text-yellow-600 mb-2 dark:text-yellow-400">
                     {currentTideData.waterLevelStatus}
+                  </p>
+                  <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:hover:bg-yellow-800">
+                    ระดับน้ำอิงจากเวลาที่เลือก
                   </Badge>
                   <div className="mt-4 flex justify-between items-center p-3 bg-slate-50 rounded-lg dark:bg-gray-700">
                     <span className="font-medium text-slate-700 dark:text-gray-300">วันนี้หนุนสูงมั้ย:</span>

@@ -402,6 +402,7 @@ export default function LocationSelector() {
                 <TideAnimation
                   currentWaterLevel={currentTideData.currentWaterLevel}
                   tideEvents={currentTideData.tideEvents}
+                  waterLevelStatus={currentTideData.waterLevelStatus}
                 />
               </CardContent>
             </Card>

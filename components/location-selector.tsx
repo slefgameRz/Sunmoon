@@ -31,14 +31,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { th } from "date-fns/locale" // Import Thai locale for date-fns
 import { useTheme } from "next-themes" // Import useTheme hook
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import MapSelector from "./map-selector" // Import the new MapSelector component
 
 // Default values if API calls fail
@@ -201,33 +193,26 @@ export default function LocationSelector() {
               ใช้ตำแหน่งปัจจุบัน
             </Button>
 
-            {/* Map Selection Dialog */}
-            <Dialog open={isMapDialogOpen} onOpenChange={setIsMapDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className="w-[180px] justify-start text-left font-normal bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600"
-                >
-                  <MapPin className="mr-2 h-4 w-4" />
-                  เลือกจากแผนที่
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] dark:bg-gray-800 dark:text-white">
-                <DialogHeader>
-                  <DialogTitle>เลือกตำแหน่งจากแผนที่</DialogTitle>
-                  <DialogDescription>ลากหมุดหรือคลิกบนแผนที่เพื่อเลือกตำแหน่ง หรือใช้ช่องค้นหา</DialogDescription>
-                </DialogHeader>
-                <MapSelector
-                  currentLocation={selectedLocation}
-                  onSelectLocation={(newLocation) => {
-                    setSelectedLocation(newLocation)
-                    localStorage.setItem("preferredLocation", JSON.stringify(newLocation))
-                    setIsMapDialogOpen(false)
-                  }}
-                  onClose={() => setIsMapDialogOpen(false)}
-                />
-              </DialogContent>
-            </Dialog>
+            {/* Map Selection Dialog Trigger */}
+            <Button
+              variant="outline"
+              className="w-[180px] justify-start text-left font-normal bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600"
+              onClick={() => setIsMapDialogOpen(true)}
+            >
+              <MapPin className="mr-2 h-4 w-4" />
+              เลือกจากแผนที่
+            </Button>
+            {/* Map Selector Dialog */}
+            <MapSelector
+              isOpen={isMapDialogOpen}
+              currentLocation={selectedLocation}
+              onSelectLocation={(newLocation) => {
+                setSelectedLocation(newLocation)
+                localStorage.setItem("preferredLocation", JSON.stringify(newLocation))
+                setIsMapDialogOpen(false)
+              }}
+              onClose={() => setIsMapDialogOpen(false)}
+            />
 
             {/* Date Picker */}
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>

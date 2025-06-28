@@ -174,8 +174,8 @@ export default function LocationSelector() {
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 md:p-6 lg:p-8 dark:from-gray-800 dark:to-gray-900">
         <div className="container mx-auto flex flex-col items-center justify-center">
           <div className="text-center mb-6">
-            <h1 className="text-3xl lg:text-4xl font-bold mb-2">🌊 พยากรณ์น้ำและอากาศ</h1>
-            <p className="text-blue-100 text-lg dark:text-gray-300">ข้อมูลครบครันเกี่ยวกับน้ำขึ้นน้ำลง สภาพอากาศ และระดับน้ำทะเล</p>
+            <h1 className="text-3xl lg:text-4xl font-bold mb-2">🌊 SEAPALO</h1>
+            <p className="text-blue-100 text-lg dark:text-gray-300">{"ระบบวิเคราะห์ระดับน้ำอัจฉริยะ"}</p>
           </div>
 
           {/* Location and Date/Time Controls */}
@@ -247,7 +247,7 @@ export default function LocationSelector() {
               <Clock className="h-4 w-4 text-blue-100 dark:text-gray-300" />
               <Select onValueChange={setSelectedHour} value={selectedHour}>
                 <SelectTrigger className="w-[80px] bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600">
-                  <SelectValue placeholder="ชั่วโมง" />
+                  <SelectValue placeholder="ชั่วโมง">{selectedHour}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="dark:bg-gray-700 dark:text-white">
                   {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((hour) => (
@@ -260,7 +260,7 @@ export default function LocationSelector() {
               <span className="text-blue-100 dark:text-gray-300">:</span>
               <Select onValueChange={setSelectedMinute} value={selectedMinute}>
                 <SelectTrigger className="w-[80px] bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600">
-                  <SelectValue placeholder="นาที" />
+                  <SelectValue placeholder="นาที">{selectedMinute}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="dark:bg-gray-700 dark:text-white">
                   {["00", "15", "30", "45"].map((minute) => (

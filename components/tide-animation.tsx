@@ -91,7 +91,7 @@ export default function TideAnimation({ currentWaterLevel, tideEvents, waterLeve
           </div>
 
           {/* Scale markers on the right side of the tank */}
-          <div className="absolute right-0 top-0 bottom-0 w-10 flex flex-col justify-between py-2 text-xs text-gray-700 dark:text-gray-300 pl-2 pr-1">
+          <div className="absolute right-0 top-0 bottom-0 w-20 flex flex-col justify-between py-2 text-xs text-gray-700 dark:text-gray-300 pr-2">
             {scaleMarkers.map((marker, index) => (
               <div key={index} className="relative h-0 flex-grow" style={{ flexBasis: `${marker.pct}%` }}>
                 <span className="absolute right-0 -translate-y-1/2">{marker.level.toFixed(1)} ม.</span>

@@ -1,5 +1,5 @@
 "use client"
-import { ArrowUp, ArrowDown, Droplets } from "lucide-react"
+import { Droplets } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { TideEvent } from "@/lib/tide-service"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -21,6 +21,7 @@ export default function TideAnimation({ currentWaterLevel, tideEvents, waterLeve
   // Generate scale markers
   const scaleMarkers = Array.from({ length: Math.floor(VISUAL_RANGE) + 1 }, (_, i) => {
     const level = TIDE_VISUAL_MIN + i
+    // Ensure percentage is within 0-100 range
     const pct = Math.max(0, Math.min(100, ((level - TIDE_VISUAL_MIN) / VISUAL_RANGE) * 100))
     return { level, pct }
   }).filter((marker) => marker.level >= TIDE_VISUAL_MIN && marker.level <= TIDE_VISUAL_MAX)
@@ -28,7 +29,7 @@ export default function TideAnimation({ currentWaterLevel, tideEvents, waterLeve
   return (
     <TooltipProvider>
       <div className="relative w-full h-72 bg-gradient-to-t from-blue-100 to-blue-50 rounded-lg overflow-hidden border border-blue-200 shadow-inner dark:from-blue-950 dark:to-blue-900 dark:border-blue-800">
-        {/* Water level indicator */}
+        {/* Water level fill */}
         <div
           className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-500 to-blue-400 dark:from-blue-700 dark:to-blue-600 transition-all duration-1000 ease-in-out"
           style={{ height: `${currentWaterLevelPct}%` }}
@@ -41,7 +42,7 @@ export default function TideAnimation({ currentWaterLevel, tideEvents, waterLeve
         <Tooltip>
           <TooltipTrigger asChild>
             <div
-              className="absolute left-0 right-0 h-0.5 bg-purple-600 dark:bg-purple-400 z-10 transition-all duration-1000 ease-in-out"
+              className="absolute left-0 right-0 h-0.5 bg-purple-600 dark:bg-purple-400 z-10 transition-all duration-1000 ease-in-out cursor-pointer"
               style={{ bottom: `${currentWaterLevelPct}%` }}
             >
               <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1 bg-purple-600 dark:bg-purple-400 text-white rounded-md text-sm font-bold whitespace-nowrap">
@@ -59,27 +60,19 @@ export default function TideAnimation({ currentWaterLevel, tideEvents, waterLeve
         {/* Tide event markers */}
         {tideEvents.map((event, index) => {
           const eventLevelPct = Math.max(0, Math.min(100, ((event.level - TIDE_VISUAL_MIN) / VISUAL_RANGE) * 100))
-          const eventPosition = `calc(${eventLevelPct}% - 12px)` // Adjust for marker height
+          const eventPosition = `calc(${eventLevelPct}% - 2px)` // Adjust for marker height (small dot/line)
 
           return (
             <Tooltip key={index}>
               <TooltipTrigger asChild>
+                {/* Small visual marker on the left side of the water column */}
                 <div
                   className={cn(
-                    "absolute left-0 right-0 flex items-center px-2 py-1 rounded-md text-sm font-semibold transition-all duration-1000 ease-in-out cursor-pointer",
-                    event.type === "high"
-                      ? "bg-blue-500 text-white dark:bg-blue-700"
-                      : "bg-red-500 text-white dark:bg-red-700",
+                    "absolute left-0 w-4 h-1 rounded-full z-10 transition-all duration-1000 ease-in-out cursor-pointer",
+                    event.type === "high" ? "bg-blue-500 dark:bg-blue-700" : "bg-red-500 dark:bg-red-700",
                   )}
                   style={{ bottom: eventPosition }}
-                >
-                  {event.type === "high" ? (
-                    <ArrowUp className="h-4 w-4 mr-1" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4 mr-1" />
-                  )}
-                  {event.type === "high" ? "น้ำขึ้น" : "น้ำลง"}: {event.time}
-                </div>
+                />
               </TooltipTrigger>
               <TooltipContent className="dark:bg-gray-700 dark:text-white">
                 <p>{event.type === "high" ? "น้ำขึ้นสูงสุด" : "น้ำลงต่ำสุด"}</p>
@@ -90,7 +83,7 @@ export default function TideAnimation({ currentWaterLevel, tideEvents, waterLeve
           )
         })}
 
-        {/* Scale markers on the side */}
+        {/* Scale markers on the right side */}
         <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-between py-2 text-xs text-gray-700 dark:text-gray-300">
           {scaleMarkers.map((marker, index) => (
             <div key={index} className="relative h-0 flex-grow" style={{ flexBasis: `${marker.pct}%` }}>

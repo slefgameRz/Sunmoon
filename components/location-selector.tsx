@@ -176,26 +176,6 @@ export default function LocationSelector() {
     return <Sun className="h-8 w-8 text-amber-500" />
   }
 
-  // Simple status indicators
-  const getSimpleWeatherStatus = () => {
-    const temp = currentWeatherData.main.temp
-    if (temp > 35) return { status: "ร้อนมาก", color: "text-red-600", bg: "bg-red-50" }
-    if (temp > 30) return { status: "ร้อน", color: "text-orange-600", bg: "bg-orange-50" }
-    if (temp > 25) return { status: "อบอุ่น", color: "text-yellow-600", bg: "bg-yellow-50" }
-    if (temp > 20) return { status: "เย็นสบาย", color: "text-green-600", bg: "bg-green-50" }
-    return { status: "เย็น", color: "text-blue-600", bg: "bg-blue-50" }
-  }
-
-  const getTideSimpleStatus = () => {
-    if (currentTideData.tideStatus === "น้ำเป็น") {
-      return { status: "น้ำขึ้นลงมาก", color: "text-blue-600", bg: "bg-blue-50" }
-    }
-    return { status: "น้ำขึ้นลงน้อย", color: "text-purple-600", bg: "bg-purple-50" }
-  }
-
-  const weatherStatus = getSimpleWeatherStatus()
-  const tideStatus = getTideSimpleStatus()
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-950">
       {/* Simple Header */}

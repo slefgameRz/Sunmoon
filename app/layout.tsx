@@ -13,7 +13,13 @@ const sarabun = Sarabun({
 export const metadata: Metadata = {
   title: "Thai Weather App",
   description: "Real-time weather and tide forecast for Thailand",
-    generator: 'v0.dev'
+  generator: "v0.dev",
+}
+
+// Per Next.js app router guidance: export `viewport` separately instead of placing it inside `metadata`.
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({
@@ -23,7 +29,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" suppressHydrationWarning>
-      <body className={`${sarabun.variable} font-sans`}>
+      <body className={`${sarabun.variable} font-sans`} suppressHydrationWarning>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-blue-600 focus:text-white focus:px-3 focus:py-2 focus:rounded"
+        >
+          ข้ามไปยังเนื้อหา
+        </a>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>

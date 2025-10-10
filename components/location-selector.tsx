@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Map as PigeonMap, Marker } from "pigeon-maps"
 import {
   Sun,
   Cloud,
@@ -25,13 +26,14 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getLocationForecast, type LocationData, type ForecastResult } from "@/actions/get-location-forecast"
+import { getLocationForecast, type ForecastResult } from "@/actions/get-location-forecast"
+import { type LocationData } from "@/lib/tide-service"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { th } from "date-fns/locale" // Import Thai locale for date-fns
 import { useTheme } from "next-themes" // Import useTheme hook
-import MapSelector from "./map-selector" // Import the new MapSelector component
+// Map selector UI temporarily disabled to focus on UI bug fixes
 import TideAnimation from "./tide-animation" // Import the new TideAnimation component
 
 // Default values if API calls fail
@@ -49,6 +51,11 @@ const defaultTideData = {
   pierDistance: 0,
   pierReference: "ไม่ทราบแหล่งอ้างอิง",
   tideEvents: [], // Initialize as empty array
+  timeRangePredictions: [],
+  graphData: [],
+  apiStatus: "error" as const,
+  apiStatusMessage: "ไม่มีข้อมูล",
+  lastUpdated: new Date().toISOString(),
 }
 
 const defaultWeatherData = {
@@ -59,29 +66,71 @@ const defaultWeatherData = {
 }
 
 export default function LocationSelector() {
-  const [selectedLocation, setSelectedLocation] = useState<LocationData>(() => {
-    // Initialize from localStorage or default to Bangkok
-    if (typeof window !== "undefined") {
-      const savedLocation = localStorage.getItem("preferredLocation")
-      if (savedLocation) {
-        return JSON.parse(savedLocation)
-      }
-    }
-    // Default to Bangkok coordinates if no saved location
-    return { lat: 13.7563, lon: 100.5018, name: "กรุงเทพมหานคร" }
+  // Initialize with static values to prevent hydration mismatch
+  const [selectedLocation, setSelectedLocation] = useState<LocationData>({ 
+    lat: 13.7563, 
+    lon: 100.5018, 
+    name: "กรุงเทพมหานคร" 
   })
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date()) // State for selected date
-  const [selectedHour, setSelectedHour] = useState<string>(String(new Date().getHours()).padStart(2, "0")) // State for selected hour
-  const [selectedMinute, setSelectedMinute] = useState<string>(
-    String(Math.floor(new Date().getMinutes() / 15) * 15).padStart(2, "0"),
-  ) // State for selected minute (rounded to nearest 15)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [selectedHour, setSelectedHour] = useState<string>("12")
+  const [selectedMinute, setSelectedMinute] = useState<string>("00")
+  const [isHydrated, setIsHydrated] = useState(false) // Track hydration state
   const [isCalendarOpen, setIsCalendarOpen] = useState(false) // State to control calendar popover
-  const [isMapDialogOpen, setIsMapDialogOpen] = useState(false) // State to control map dialog
+  // Map selection modal is temporarily disabled
+
+  // Popular Thai coastal locations for quick selection
+  const popularCoastalLocations: LocationData[] = [
+    { lat: 13.7563, lon: 100.5018, name: "กรุงเทพมหานคร (อ่าวไทย)" },
+    { lat: 7.8804, lon: 98.3923, name: "ภูเก็ต (ทะเลอันดามัน)" },
+    { lat: 9.1378, lon: 99.3328, name: "เกาะสมุย (อ่าวไทย)" },
+    { lat: 12.9236, lon: 100.8783, name: "พัทยา (ชลบุรี)" },
+    { lat: 11.2567, lon: 99.9534, name: "หัวหิน (ประจุวบคีรีขันธ์)" },
+    { lat: 8.4304, lon: 99.9588, name: "กระบี่" },
+    { lat: 9.9673, lon: 99.0515, name: "เกาะช้าง (ตราด)" },
+    { lat: 13.3611, lon: 100.9847, name: "บางแสน (ชลบุรี)" },
+    { lat: 10.7627, lon: 99.7564, name: "เกาะเต่า" },
+    { lat: 8.1080, lon: 98.2914, name: "เกาะพีพี" },
+    { lat: 6.5442, lon: 99.6125, name: "สตูล (ทะเลอันดามัน)" },
+    { lat: 7.5407, lon: 99.5129, name: "ตรัง (ทะเลอันดามัน)" },
+    { lat: 13.2721, lon: 100.9252, name: "ศรีราชา (ชลบุรี)" },
+    { lat: 12.6802, lon: 101.2024, name: "เกาะสีชัง (ชลบุรี)" },
+    { lat: 10.0983, lon: 99.8180, name: "เกาะพงัน" }
+  ]
   const [forecastData, setForecastData] = useState<ForecastResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [gettingLocation, setGettingLocation] = useState(false)
   const { theme, setTheme } = useTheme() // Hook for theme management
+
+  // Safe localStorage operations
+  const saveLocationToStorage = useCallback((location: LocationData) => {
+    if (isHydrated && typeof window !== 'undefined') {
+      localStorage.setItem("preferredLocation", JSON.stringify(location))
+    }
+  }, [isHydrated])
+
+  // Handle hydration and localStorage after component mounts
+  useEffect(() => {
+    setIsHydrated(true)
+    if (typeof window !== 'undefined') {
+      // Set current date and time after hydration
+      const now = new Date()
+      setSelectedDate(now)
+      setSelectedHour(String(now.getHours()).padStart(2, "0"))
+      setSelectedMinute(String(Math.floor(now.getMinutes() / 15) * 15).padStart(2, "0"))
+      // Load saved location from localStorage
+      const savedLocation = localStorage.getItem("preferredLocation")
+      if (savedLocation) {
+        try {
+          const parsedLocation = JSON.parse(savedLocation)
+          setSelectedLocation(parsedLocation)
+        } catch (error) {
+          console.error("Error parsing saved location:", error)
+        }
+      }
+    }
+  }, [])
 
   const fetchForecast = useCallback(async (location: LocationData, date: Date, hour: string, minute: string) => {
     setLoading(true)
@@ -106,7 +155,7 @@ export default function LocationSelector() {
   // Get user's current location
   const getCurrentLocation = useCallback(() => {
     setGettingLocation(true)
-    if (navigator.geolocation) {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords
@@ -116,7 +165,7 @@ export default function LocationSelector() {
             name: "ตำแหน่งปัจจุบัน",
           }
           setSelectedLocation(currentLocation)
-          localStorage.setItem("preferredLocation", JSON.stringify(currentLocation))
+          saveLocationToStorage(currentLocation)
           setGettingLocation(false)
         },
         (error) => {
@@ -137,11 +186,11 @@ export default function LocationSelector() {
   }, [])
 
   useEffect(() => {
-    if (selectedLocation && selectedDate) {
-      localStorage.setItem("preferredLocation", JSON.stringify(selectedLocation))
+    if (selectedLocation && selectedDate && isHydrated) {
+      saveLocationToStorage(selectedLocation)
       fetchForecast(selectedLocation, selectedDate, selectedHour, selectedMinute)
     }
-  }, [selectedLocation, selectedDate, selectedHour, selectedMinute, fetchForecast])
+  }, [selectedLocation, selectedDate, selectedHour, selectedMinute, fetchForecast, isHydrated, saveLocationToStorage])
 
   const formattedDate = selectedDate ? format(selectedDate, "EEEE, d MMMM yyyy", { locale: th }) : "เลือกวันที่"
   const formattedTime = `${selectedHour}:${selectedMinute} น.`
@@ -179,6 +228,48 @@ export default function LocationSelector() {
             <p className="text-blue-100 text-lg dark:text-gray-300">{"ระบบวิเคราะห์ระดับน้ำอัจฉริยะ"}</p>
           </div>
 
+          {/* Quick Location Selector */}
+          <div className="mb-4 flex items-center justify-center gap-4">
+            <div className="rounded-md overflow-hidden shadow-md w-24 h-24 bg-white/80 flex items-center justify-center">
+              <div className="text-center px-2">
+                <MapPin className="mx-auto h-6 w-6 text-blue-600" />
+                <span className="text-xs block mt-1 text-gray-700 dark:text-gray-300">{isHydrated ? selectedLocation.name.split(' ')[0] : 'ตำแหน่ง'}</span>
+              </div>
+            </div>
+
+            <div>
+              <Select
+                onValueChange={(value) => {
+                  const location = popularCoastalLocations.find(loc => loc.name === value)
+                  if (location) {
+                    setSelectedLocation(location)
+                    saveLocationToStorage(location)
+                  }
+                }}
+                value={isHydrated ? selectedLocation.name : popularCoastalLocations[0].name}
+              >
+                <SelectTrigger className="w-[300px] bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600">
+                  <SelectValue placeholder="เลือกตำแหน่งด่วน" />
+                </SelectTrigger>
+                <SelectContent className="dark:bg-gray-700 dark:text-white">
+                  {popularCoastalLocations.map((location) => (
+                    <SelectItem key={location.name} value={location.name}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {popularCoastalLocations.slice(0,6).map((loc) => (
+                  <Button key={loc.name} size="sm" variant="ghost" onClick={() => { setSelectedLocation(loc); saveLocationToStorage(loc) }}>
+                    {loc.name.split(' ')[0]}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Location and Date/Time Controls */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
             <Button
@@ -194,26 +285,11 @@ export default function LocationSelector() {
               ใช้ตำแหน่งปัจจุบัน
             </Button>
 
-            {/* Map Selection Dialog Trigger */}
-            <Button
-              variant="outline"
-              className="w-[180px] justify-start text-left font-normal bg-white/20 border-white/30 text-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600"
-              onClick={() => setIsMapDialogOpen(true)}
-            >
+            {/* Map selection temporarily disabled to stabilize the UI */}
+            <div className="w-[180px] text-left text-sm text-white/90 p-2 bg-transparent border border-white/10 rounded-md flex items-center gap-2">
               <MapPin className="mr-2 h-4 w-4" />
-              เลือกจากแผนที่
-            </Button>
-            {/* Map Selector Dialog */}
-            <MapSelector
-              isOpen={isMapDialogOpen}
-              currentLocation={selectedLocation}
-              onSelectLocation={(newLocation) => {
-                setSelectedLocation(newLocation)
-                localStorage.setItem("preferredLocation", JSON.stringify(newLocation))
-                setIsMapDialogOpen(false)
-              }}
-              onClose={() => setIsMapDialogOpen(false)}
-            />
+              <span>เลือกจากแผนที่ (ปิดใช้งาน)</span>
+            </div>
 
             {/* Date Picker */}
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
@@ -278,7 +354,9 @@ export default function LocationSelector() {
           <div className="text-center flex items-center justify-center gap-4">
             <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 dark:bg-gray-700/50">
               <MapPin className="h-4 w-4" />
-              <span className="font-medium">{selectedLocation.name}</span>
+              <span className="font-medium">
+                {isHydrated ? selectedLocation.name : "กรุงเทพมหานคร"}
+              </span>
             </div>
             {/* Theme Toggle Button */}
             <Button
@@ -400,9 +478,7 @@ export default function LocationSelector() {
               </CardHeader>
               <CardContent className="pt-4">
                 <TideAnimation
-                  currentWaterLevel={currentTideData.currentWaterLevel}
-                  tideEvents={currentTideData.tideEvents}
-                  waterLevelStatus={currentTideData.waterLevelStatus}
+                  tideData={currentTideData}
                 />
               </CardContent>
             </Card>

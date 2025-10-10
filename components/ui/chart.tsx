@@ -1,14 +1,30 @@
 "use client"
 
 import * as React from "react"
-import { VictoryAxis, VictoryBar, VictoryChart, VictoryLine, VictoryPie, VictoryTheme } from "victory"
+import { VictoryAxis, VictoryChart, VictoryLine, VictoryTheme } from "victory"
 
 import { cn } from "@/lib/utils"
 
-const ChartContext = React.createContext(null)
+type ChartProps = {
+  className?: string
+  children?: React.ReactNode
+  [key: string]: any
+}
 
-function Chart({ className, children, ...props }) {
-  const chartRef = React.useRef(null)
+type TideChartProps = {
+  data: { time: string; level: number }[]
+  className?: string
+  [key: string]: any
+}
+
+type ChartContextType = {
+  chartRef: React.RefObject<HTMLDivElement | null>
+} | null
+
+const ChartContext = React.createContext<ChartContextType>(null)
+
+function Chart({ className, children, ...props }: ChartProps) {
+  const chartRef = React.useRef<HTMLDivElement>(null)
 
   return (
     <ChartContext.Provider value={{ chartRef }}>
@@ -19,10 +35,10 @@ function Chart({ className, children, ...props }) {
   )
 }
 
-function ChartContainer({ className, children, ...props }) {
-  const { chartRef } = React.useContext(ChartContext)
+function ChartContainer({ className = "", children = null, ...props }: ChartProps) {
+  const context = React.useContext(ChartContext)
 
-  if (!chartRef) {
+  if (!context || !context.chartRef) {
     throw new Error("ChartContainer must be used within a Chart component.")
   }
 
@@ -33,7 +49,7 @@ function ChartContainer({ className, children, ...props }) {
   )
 }
 
-function ChartTooltip({ className, children, ...props }) {
+function ChartTooltip({ className = "", children = null, ...props }: ChartProps) {
   return (
     <div
       className={cn(
@@ -47,19 +63,44 @@ function ChartTooltip({ className, children, ...props }) {
   )
 }
 
-function ChartLegend({ className, children, ...props }) {
+function ChartLegend({ className = "", children = null, ...props }: ChartProps) {
   return (
-    <div className={cn("flex items-center justify-center gap-4 text-sm font-medium", className)} {...props}>
+    <div className={cn("flex items-center space-x-2", className)} {...props}>
       {children}
     </div>
   )
 }
 
-function ChartLegendItem({ className, children, ...props }) {
+function ChartLegendItem({ className = "", children = null, ...props }: ChartProps) {
   return (
-    <div className={cn("flex items-center gap-1.5", className)} {...props}>
-      <span className="h-3 w-3 rounded-full bg-gray-200" />
+    <div className={cn("flex items-center", className)} {...props}>
       {children}
+    </div>
+  )
+}
+
+function TideChart({ data, className, ...props }: TideChartProps) {
+  return (
+    <div className={cn("w-full h-full", className)}>
+      <VictoryChart theme={VictoryTheme.material} domainPadding={20} {...props}>
+        <VictoryAxis
+          tickFormat={(t) => `${t}h`}
+          label="Time"
+          style={{ axisLabel: { padding: 30 } }}
+        />
+        <VictoryAxis
+          dependentAxis
+          tickFormat={(t) => `${t}m`}
+          label="Tide Level"
+          style={{ axisLabel: { padding: 40 } }}
+        />
+        <VictoryLine
+          data={data}
+          x="time"
+          y="level"
+          style={{ data: { stroke: "#4a90e2" } }}
+        />
+      </VictoryChart>
     </div>
   )
 }
@@ -71,9 +112,8 @@ export {
   ChartLegend,
   ChartLegendItem,
   VictoryAxis,
-  VictoryBar,
   VictoryChart,
   VictoryLine,
-  VictoryPie,
   VictoryTheme,
+  TideChart,
 }

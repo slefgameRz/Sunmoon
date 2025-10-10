@@ -2,35 +2,29 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { Map as PigeonMap, Marker } from "pigeon-maps"
-import { Loader2, MapPin, Search, Crosshair } from "lucide-react"
+import { Loader2, MapPin, Search, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { LocationData } from "@/lib/tide-service"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 type MapSelectorProps = {
-  isOpen: boolean
   currentLocation: LocationData
   onSelectLocationAction: (location: LocationData) => void
   onCloseAction: () => void
+  isOpen: boolean
 }
 
-export default function MapSelector({ isOpen, currentLocation, onSelectLocationAction, onCloseAction }: MapSelectorProps) {
+export default function MapSelectorClean({ currentLocation, onSelectLocationAction, onCloseAction, isOpen }: MapSelectorProps) {
   const [markerPosition, setMarkerPosition] = useState<LocationData>(currentLocation)
+  useEffect(() => setMarkerPosition(currentLocation), [currentLocation])
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    setMarkerPosition(currentLocation)
-  }, [currentLocation, isOpen])
-
-  const center = useMemo(() => [markerPosition.lat, markerPosition.lon] as [number, number], [markerPosition])
-
-  const handleMapClick = useCallback(({ latLng }: { latLng: [number, number] }) => {
+  const handleClick = useCallback(({ latLng }: { latLng: [number, number] }) => {
     const [lat, lon] = latLng
     setMarkerPosition({ lat, lon, name: "ตำแหน่งที่เลือก" })
-    setError(null)
   }, [])
 
   const handleSearch = useCallback(async () => {
@@ -43,9 +37,7 @@ export default function MapSelector({ isOpen, currentLocation, onSelectLocationA
       if (data?.length) {
         const p = data[0]
         setMarkerPosition({ lat: Number(p.lat), lon: Number(p.lon), name: p.display_name })
-      } else {
-        setError("ไม่พบสถานที่")
-      }
+      } else setError("ไม่พบสถานที่")
     } catch (e) {
       setError("เกิดข้อผิดพลาด")
     } finally {
@@ -53,70 +45,43 @@ export default function MapSelector({ isOpen, currentLocation, onSelectLocationA
     }
   }, [query])
 
-  const useMyLocation = useCallback(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setError("อุปกรณ์ไม่รองรับตำแหน่ง")
-      return
-    }
-    setLoading(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lon: pos.coords.longitude, name: "ตำแหน่งปัจจุบัน" }
-        setMarkerPosition(loc)
-        setLoading(false)
-      },
-      () => {
-        setError("ไม่สามารถเข้าถึงตำแหน่งได้")
-        setLoading(false)
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }, [])
+  const center = useMemo(() => [markerPosition.lat, markerPosition.lon] as [number, number], [markerPosition])
 
   return (
     <Dialog open={isOpen} onOpenChange={onCloseAction}>
-      <DialogContent className="max-w-4xl p-0">
+      <DialogContent className="max-w-3xl p-0">
         <div className="flex flex-col sm:flex-row">
           <div className="sm:w-2/3 p-3">
             <DialogHeader>
               <DialogTitle>เลือกตำแหน่งจากแผนที่</DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">คลิกที่แผนที่เพื่อตั้งหมุด หรือค้นหาชื่อสถานที่</DialogDescription>
+              <DialogDescription className="text-sm text-muted-foreground">คลิกที่แผนที่เพื่อวางหมุด แล้วกดยืนยัน</DialogDescription>
             </DialogHeader>
-
-            <div className="mt-2 h-72 rounded-md overflow-hidden border">
-              <PigeonMap center={center} zoom={9} onClick={handleMapClick} attributionPrefix={false} dprs={[1,2]} boxClassname="w-full h-full">
+            <div className="h-72 rounded-md overflow-hidden border">
+              <PigeonMap center={center} zoom={9} onClick={handleClick} attributionPrefix={false} dprs={[1,2]} boxClassname="w-full h-full">
                 <Marker anchor={center} />
               </PigeonMap>
             </div>
-
             <div className="mt-2 flex items-center justify-between">
               <div className="text-sm">
                 <div className="font-medium">{markerPosition.name}</div>
                 <div className="text-xs text-muted-foreground">{markerPosition.lat.toFixed(4)}, {markerPosition.lon.toFixed(4)}</div>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={onCloseAction}>ยกเลิก</Button>
+                <Button variant="secondary" onClick={onCloseAction}>ยกเลิก</Button>
                 <Button onClick={() => { onSelectLocationAction(markerPosition); onCloseAction() }}>ยืนยันตำแหน่ง</Button>
               </div>
             </div>
           </div>
-
           <aside className="sm:w-1/3 p-3 bg-gray-50">
             <Input placeholder="ค้นหาสถานที่" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
             <div className="mt-2 flex gap-2">
               <Button onClick={handleSearch} className="flex-1">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}</Button>
               <Button variant="outline" onClick={() => { setMarkerPosition(currentLocation); setQuery('') }}>Reset</Button>
             </div>
-            <div className="mt-3">
-              <Button variant="secondary" className="w-full justify-center" onClick={useMyLocation}>
-                <Crosshair className="mr-2 h-4 w-4" /> ใช้ตำแหน่งปัจจุบัน
-              </Button>
-            </div>
-            {error && <div className="text-sm text-red-500 mt-2">{error}</div>}
+            {error && <div className="text-sm text-red-500 mt-2"><AlertCircle className="inline-block mr-2" />{error}</div>}
           </aside>
         </div>
       </DialogContent>
     </Dialog>
   )
 }
-

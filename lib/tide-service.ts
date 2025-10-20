@@ -533,47 +533,107 @@ function generateTimeRangePredictions(tideEvents: TideEvent[]): TimeRangePredict
 function generateWaterLevelGraphData(tideEvents: TideEvent[], date: Date): WaterLevelGraphData[] {
   const graphData: WaterLevelGraphData[] = []
   
+  if (tideEvents.length === 0) {
+    // Fallback: Generate simple tide pattern if no events
+    for (let hour = 0; hour < 24; hour++) {
+      const time = `${hour.toString().padStart(2, '0')}:00`
+      const tidePhase = (hour / 24) * 2 * Math.PI
+      const level = 1.5 + Math.sin(tidePhase) * 0.8
+      
+      const currentDate = new Date(date)
+      currentDate.setHours(hour, 0, 0, 0)
+      const isPrediction = currentDate > new Date()
+      
+      graphData.push({
+        time,
+        level: Math.max(-0.5, Math.min(3.5, level)),
+        prediction: isPrediction
+      })
+    }
+    return graphData
+  }
+  
+  // Sort tide events by time for proper interpolation
+  const sortedEvents = [...tideEvents].sort((a, b) => {
+    const [ha, ma] = a.time.split(':').map(Number)
+    const [hb, mb] = b.time.split(':').map(Number)
+    const timeA = ha + ma / 60
+    const timeB = hb + mb / 60
+    return timeA - timeB
+  })
+  
   // Generate data points for every hour of the day
   for (let hour = 0; hour < 24; hour++) {
     const time = `${hour.toString().padStart(2, '0')}:00`
+    const currentHourDecimal = hour
     
-    // Interpolate water level based on tide events
     let level = 1.5 // default middle level
     
-    if (tideEvents.length > 0) {
-      // Find surrounding tide events
-      let beforeEvent: TideEvent | null = null
-      let afterEvent: TideEvent | null = null
+    // Find the two surrounding tide events for interpolation
+    let beforeEvent: TideEvent | null = null
+    let afterEvent: TideEvent | null = null
+    
+    for (let i = 0; i < sortedEvents.length; i++) {
+      const event = sortedEvents[i]
+      const [eventHour, eventMinute] = event.time.split(':').map(Number)
+      const eventHourDecimal = eventHour + eventMinute / 60
       
-      for (const event of tideEvents) {
-        const [eventHour] = event.time.split(':').map(Number)
-        if (eventHour <= hour) {
-          beforeEvent = event
-        }
-        if (eventHour >= hour && !afterEvent) {
-          afterEvent = event
-        }
+      if (eventHourDecimal <= currentHourDecimal) {
+        beforeEvent = event
       }
       
-      // Interpolate between events
-      if (beforeEvent && afterEvent && beforeEvent.time !== afterEvent.time) {
-        const [beforeHour] = beforeEvent.time.split(':').map(Number)
-        const [afterHour] = afterEvent.time.split(':').map(Number)
-        
-        // Handle wrap-around (e.g., 22:00 to 02:00 next day)
-        let hourDiff = afterHour - beforeHour
-        if (hourDiff < 0) hourDiff += 24
-        if (hourDiff === 0) hourDiff = 24
-        
-        const positionInCycle = (hour - beforeHour + (hour < beforeHour ? 24 : 0)) / hourDiff
-        
-        // Linear interpolation between tide levels
-        level = beforeEvent.level + (afterEvent.level - beforeEvent.level) * Math.min(1, Math.max(0, positionInCycle))
-      } else if (beforeEvent) {
+      if (eventHourDecimal >= currentHourDecimal && !afterEvent) {
+        afterEvent = event
+      }
+    }
+    
+    // If we don't have a before event, use the last event (wrap around)
+    if (!beforeEvent && sortedEvents.length > 0) {
+      beforeEvent = sortedEvents[sortedEvents.length - 1]
+    }
+    
+    // If we don't have an after event, use the first event (wrap around)
+    if (!afterEvent && sortedEvents.length > 0) {
+      afterEvent = sortedEvents[0]
+    }
+    
+    // Interpolate between events
+    if (beforeEvent && afterEvent) {
+      const [beforeHour, beforeMinute] = beforeEvent.time.split(':').map(Number)
+      const [afterHour, afterMinute] = afterEvent.time.split(':').map(Number)
+      
+      const beforeHourDecimal = beforeHour + beforeMinute / 60
+      const afterHourDecimal = afterHour + afterMinute / 60
+      
+      let timeDiff = afterHourDecimal - beforeHourDecimal
+      
+      // Handle wrap-around (e.g., high tide at 22:00, low tide at 04:00 next day)
+      if (timeDiff < 0) {
+        timeDiff += 24
+      }
+      
+      // Handle edge case where times are the same
+      if (timeDiff === 0) {
         level = beforeEvent.level
-      } else if (afterEvent) {
-        level = afterEvent.level
+      } else {
+        // Calculate position in the cycle between before and after events
+        let positionInCycle = currentHourDecimal - beforeHourDecimal
+        
+        // Handle wrap-around in position calculation
+        if (positionInCycle < 0) {
+          positionInCycle += 24
+        }
+        
+        // Clamp position to [0, 1]
+        const clampedPosition = Math.min(1, Math.max(0, positionInCycle / timeDiff))
+        
+        // Linear interpolation
+        level = beforeEvent.level + (afterEvent.level - beforeEvent.level) * clampedPosition
       }
+    } else if (beforeEvent) {
+      level = beforeEvent.level
+    } else if (afterEvent) {
+      level = afterEvent.level
     }
     
     // Check if this is predicted data (after current time)

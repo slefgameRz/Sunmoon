@@ -217,7 +217,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
             <text x={12} y={20} fontSize={10} fill="#64748b" fontWeight="700">ม.</text>
 
             {/* area under curve */}
-            {points.length > 1 && (
+            {points.length > 1 && pathD && (
               <path
                 d={`${pathD} L ${size.w} ${size.h} L 50 ${size.h} Z`}
                 fill="url(#grad-tide-fill)"
@@ -226,7 +226,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
             )}
 
             {/* smooth line stroke with glow */}
-            {points.length > 1 && (
+            {points.length > 1 && pathD && (
               <>
                 {/* Glow effect */}
                 <path

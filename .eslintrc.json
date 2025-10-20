@@ -1,0 +1,17 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
+  "rules": {
+    "@next/next/no-html-link-for-pages": "off"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.css"],
+      "rules": {
+        "no-unknown-atrules": "off"
+      }
+    }
+  ]
+}

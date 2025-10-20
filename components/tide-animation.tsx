@@ -371,7 +371,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
                   ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800" 
                   : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 opacity-60"
               )}
-              aria-pressed={showHigh ? "true" : "false"}
+              aria-pressed={showHigh}
             >
               <ArrowUp className="w-4 h-4" /> น้ำขึ้น
             </button>
@@ -383,7 +383,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
                   ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800" 
                   : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 opacity-60"
               )}
-              aria-pressed={showLow ? "true" : "false"}
+              aria-pressed={showLow}
             >
               <ArrowDown className="w-4 h-4" /> น้ำลง
             </button>

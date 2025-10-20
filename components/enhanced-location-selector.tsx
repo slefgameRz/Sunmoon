@@ -472,12 +472,12 @@ export default function EnhancedLocationSelector() {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-start text-left bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-700"
+                        className="w-full justify-start text-left bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-700 font-semibold text-lg"
                         aria-labelledby={dateLabelId}
                         aria-haspopup="dialog"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" aria-hidden="true" />
-                        <span className="truncate">
+                        <span className="truncate text-green-700 dark:text-green-300">
                           {selectedDate ? format(selectedDate, "PPP", { locale: th }) : "วันนี้"}
                         </span>
                       </Button>

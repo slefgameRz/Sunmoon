@@ -191,17 +191,17 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
 
         {/* Graph Content - Expandable */}
         {isExpanded && (
-        <div className="p-8">
+        <div className="p-8 w-full">
           {/* SVG Graph */}
-          <svg
-            role="img"
-            aria-label="กราฟระดับน้ำ 24 ชั่วโมง"
-            viewBox={`0 0 ${size.w} ${size.h}`}
-            width="100%"
-            height={size.h}
-            preserveAspectRatio="xMidYMid meet"
-            className="bg-gradient-to-b from-white to-blue-50/30 dark:from-slate-800 dark:to-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600/50"
-          >
+          <div className="w-full overflow-x-auto">
+            <svg
+              role="img"
+              aria-label="กราฟระดับน้ำ 24 ชั่วโมง"
+              viewBox={`0 0 ${size.w} ${size.h}`}
+              width="100%"
+              preserveAspectRatio="xMidYMid meet"
+              className="bg-gradient-to-b from-white to-blue-50/30 dark:from-slate-800 dark:to-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600/50 w-full"
+            >
             <defs>
               <linearGradient id="grad-tide-fill-new" x1="0" x2="0" y1="0" y2="1">
                 <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
@@ -314,6 +314,7 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
               )
             })}
           </svg>
+          </div>
         </div>
         )}
 

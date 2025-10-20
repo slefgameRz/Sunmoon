@@ -59,6 +59,10 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
 
   // Memoize the points and path calculation
   const { points, pathD } = React.useMemo(() => {
+    if (!graphData || graphData.length === 0) {
+      return { points: [], pathD: '' }
+    }
+
     const pts = graphData.map((p: any, i: number) => {
       const x = (i / Math.max(1, graphData.length - 1)) * (size.w - 60) + 50
       const y = size.h - ((p.level - TIDE_VISUAL_MIN) / VISUAL_RANGE) * (size.h - 40)
@@ -66,7 +70,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
     })
 
     const path = pointsToSmoothPath(pts.map(pt => ({ x: pt.x, y: pt.y })))
-    return { points: pts, pathD: path }
+    return { points: pts, pathD: path || '' }
   }, [graphData, size])
 
   return (
@@ -371,7 +375,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
                   ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800" 
                   : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 opacity-60"
               )}
-              aria-pressed={showHigh}
+              aria-pressed={showHigh ? "true" : "false"}
             >
               <ArrowUp className="w-4 h-4" /> น้ำขึ้น
             </button>
@@ -383,7 +387,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
                   ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800" 
                   : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 opacity-60"
               )}
-              aria-pressed={showLow}
+              aria-pressed={showLow ? "true" : "false"}
             >
               <ArrowDown className="w-4 h-4" /> น้ำลง
             </button>

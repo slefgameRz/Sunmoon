@@ -120,8 +120,9 @@ export async function tileHandler(req: NextApiRequest, res: NextApiResponse<Tile
 
     // For now, return a sample tile
     // In Phase 2, this would load from database/file system
+    const tileIdStr = Array.isArray(tileId) ? tileId[0] : tileId || 'default'
     const sampleTile = {
-      tileId,
+      tileId: tileIdStr,
       metadata: {
         bounds: { north: 14, south: 13, east: 101, west: 100 },
         constituents: ['M2', 'S2', 'N2', 'K1', 'O1'],

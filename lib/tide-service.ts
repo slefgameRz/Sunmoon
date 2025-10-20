@@ -68,12 +68,6 @@ export type WeatherData = {
   name: string
 }
 
-export type ForecastResult = {
-  tideData: TideData
-  weatherData: WeatherData
-  error?: string
-}
-
 /**
  * Calculate accurate lunar phase for Thai lunar calendar
  */
@@ -723,49 +717,5 @@ export async function getWeatherData(location: LocationData): Promise<WeatherDat
       deg: simulatedWindDeg,
     },
     name: location.name,
-  }
-}
-
-export async function getLocationForecast(
-  location: LocationData,
-  date: Date,
-  time: { hour: number; minute: number },
-): Promise<ForecastResult> {
-  try {
-    const tideData = await getTideData(location, date, time)
-    const weatherData = await getWeatherData(location)
-
-    return { tideData, weatherData }
-  } catch (error) {
-    console.error("Error in getLocationForecast:", error)
-    return {
-      tideData: {
-        isWaxingMoon: true,
-        lunarPhaseKham: 0,
-        tideStatus: "น้ำตาย",
-        highTideTime: "N/A",
-        lowTideTime: "N/A",
-        isSeaLevelHighToday: false,
-        currentWaterLevel: 0,
-        waterLevelStatus: "ไม่ทราบ",
-        waterLevelReference: "ไม่ทราบแหล่งอ้างอิง",
-        seaLevelRiseReference: "ไม่ทราบแหล่งอ้างอิง",
-        pierDistance: 0,
-        pierReference: "ไม่ทราบแหล่งอ้างอิง",
-        tideEvents: [],
-        timeRangePredictions: [],
-        graphData: [],
-        apiStatus: "error",
-        apiStatusMessage: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
-        lastUpdated: new Date().toISOString(),
-      },
-      weatherData: {
-        main: { temp: 0, feels_like: 0, humidity: 0, pressure: 0 },
-        weather: [{ description: "ไม่ทราบ", icon: "01d" }],
-        wind: { speed: 0, deg: 0 },
-        name: "ไม่ทราบ",
-      },
-      error: "ไม่สามารถดึงข้อมูลพยากรณ์ได้เนื่องจากข้อผิดพลาดภายใน",
-    }
   }
 }

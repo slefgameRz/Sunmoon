@@ -501,7 +501,7 @@ export default function EnhancedLocationSelector() {
                   </Label>
                   <Select value={selectedHour} onValueChange={setSelectedHour}>
                     <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600" aria-labelledby={hourLabelId}>
-                      <SelectValue />
+                      <SelectValue placeholder="เลือกชั่วโมง" />
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({ length: 24 }, (_, i) => (
@@ -520,7 +520,7 @@ export default function EnhancedLocationSelector() {
                   </Label>
                   <Select value={selectedMinute} onValueChange={setSelectedMinute}>
                     <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600" aria-labelledby={minuteLabelId}>
-                      <SelectValue />
+                      <SelectValue placeholder="เลือกนาที" />
                     </SelectTrigger>
                     <SelectContent>
                       {['00', '15', '30', '45'].map(minute => (

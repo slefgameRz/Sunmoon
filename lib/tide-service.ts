@@ -528,23 +528,62 @@ function generateTimeRangePredictions(tideEvents: TideEvent[]): TimeRangePredict
 }
 
 /**
- * Generate water level graph data for 24 hours
+ * Generate water level graph data for 24 hours using actual tide events
  */
-function generateWaterLevelGraphData(highTideTime: string, lowTideTime: string, currentLevel: number): WaterLevelGraphData[] {
+function generateWaterLevelGraphData(tideEvents: TideEvent[], date: Date): WaterLevelGraphData[] {
   const graphData: WaterLevelGraphData[] = []
-  const now = new Date()
   
+  // Generate data points for every hour of the day
   for (let hour = 0; hour < 24; hour++) {
     const time = `${hour.toString().padStart(2, '0')}:00`
-    const isPrediction = hour > now.getHours()
     
-    // Simulate tide cycle with sine wave
-    const tidePhase = (hour / 24) * 2 * Math.PI
-    const baseLevel = currentLevel + Math.sin(tidePhase) * 1.2
+    // Interpolate water level based on tide events
+    let level = 1.5 // default middle level
+    
+    if (tideEvents.length > 0) {
+      // Find surrounding tide events
+      let beforeEvent: TideEvent | null = null
+      let afterEvent: TideEvent | null = null
+      
+      for (const event of tideEvents) {
+        const [eventHour] = event.time.split(':').map(Number)
+        if (eventHour <= hour) {
+          beforeEvent = event
+        }
+        if (eventHour >= hour && !afterEvent) {
+          afterEvent = event
+        }
+      }
+      
+      // Interpolate between events
+      if (beforeEvent && afterEvent && beforeEvent.time !== afterEvent.time) {
+        const [beforeHour] = beforeEvent.time.split(':').map(Number)
+        const [afterHour] = afterEvent.time.split(':').map(Number)
+        
+        // Handle wrap-around (e.g., 22:00 to 02:00 next day)
+        let hourDiff = afterHour - beforeHour
+        if (hourDiff < 0) hourDiff += 24
+        if (hourDiff === 0) hourDiff = 24
+        
+        const positionInCycle = (hour - beforeHour + (hour < beforeHour ? 24 : 0)) / hourDiff
+        
+        // Linear interpolation between tide levels
+        level = beforeEvent.level + (afterEvent.level - beforeEvent.level) * Math.min(1, Math.max(0, positionInCycle))
+      } else if (beforeEvent) {
+        level = beforeEvent.level
+      } else if (afterEvent) {
+        level = afterEvent.level
+      }
+    }
+    
+    // Check if this is predicted data (after current time)
+    const currentDate = new Date(date)
+    currentDate.setHours(hour, 0, 0, 0)
+    const isPrediction = currentDate > new Date()
     
     graphData.push({
       time,
-      level: Math.max(0, baseLevel),
+      level: Math.max(-0.5, Math.min(3.5, level)), // Clamp to reasonable range
       prediction: isPrediction
     })
   }
@@ -613,7 +652,7 @@ export async function getTideData(
     
     // Generate additional data
     const timeRangePredictions = generateTimeRangePredictions(tideEvents)
-    const graphData = generateWaterLevelGraphData(highTideTime, lowTideTime, currentWaterLevel)
+    const graphData = generateWaterLevelGraphData(tideEvents, date)
     const { status: apiStatus, message: apiStatusMessage } = getApiStatus()
     const lastUpdated = new Date().toISOString()
     

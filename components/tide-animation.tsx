@@ -49,7 +49,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
   React.useEffect(() => {
     function update() {
       const w = Math.min(900, Math.max(320, window.innerWidth - 48))
-      const h = window.innerWidth < 640 ? 200 : 280
+      const h = window.innerWidth < 640 ? 300 : 380
       setSize({ w, h })
     }
     update()
@@ -74,7 +74,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
   }, [graphData, size])
 
   return (
-    <div className="space-y-4" aria-live="polite">
+    <div className="space-y-6" aria-live="polite">
       {/* Header with Status */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -125,7 +125,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
       </div>
 
       {/* Enhanced Graph Card */}
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 md:p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
         {/* Graph Title */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
         </div>
 
         {/* SVG Graph Container */}
-        <div className="bg-gradient-to-b from-white/95 to-blue-50/50 dark:from-slate-700/80 dark:to-slate-800/80 rounded-xl p-4 md:p-6 border border-slate-200 dark:border-slate-600/50 overflow-x-auto shadow-inner">
+        <div className="bg-gradient-to-b from-white/95 to-blue-50/50 dark:from-slate-700/80 dark:to-slate-800/80 rounded-xl p-6 md:p-8 border border-slate-200 dark:border-slate-600/50 overflow-x-auto shadow-inner">
           <svg
             role="img"
             aria-label="กราฟระดับน้ำ 24 ชั่วโมง"

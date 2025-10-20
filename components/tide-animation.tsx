@@ -57,13 +57,17 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  const points = graphData.map((p: any, i: number) => {
-    const x = (i / Math.max(1, graphData.length - 1)) * size.w
-    const y = size.h - ((p.level - TIDE_VISUAL_MIN) / VISUAL_RANGE) * size.h
-    return { x, y, time: p.time, level: p.level }
-  })
+  // Memoize the points and path calculation
+  const { points, pathD } = React.useMemo(() => {
+    const pts = graphData.map((p: any, i: number) => {
+      const x = (i / Math.max(1, graphData.length - 1)) * (size.w - 60) + 50
+      const y = size.h - ((p.level - TIDE_VISUAL_MIN) / VISUAL_RANGE) * (size.h - 40)
+      return { x, y, time: p.time, level: p.level }
+    })
 
-  const pathD = pointsToSmoothPath(points.map(pt => ({ x: pt.x, y: pt.y })))
+    const path = pointsToSmoothPath(pts.map(pt => ({ x: pt.x, y: pt.y })))
+    return { points: pts, pathD: path }
+  }, [graphData, size])
 
   return (
     <div className="space-y-4" aria-live="polite">

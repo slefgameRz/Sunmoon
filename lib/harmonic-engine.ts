@@ -86,8 +86,9 @@ export function predictTideLevel(
   // Convert date/time to hours since epoch
   const epochDate = new Date(2000, 0, 1, 0, 0, 0) // J2000 epoch
   const totalMs = date.getTime() - epochDate.getTime()
-  const totalHours = totalMs / (1000 * 60 * 60)
+  const totalHoursSinceEpoch = totalMs / (1000 * 60 * 60)
   const hourOfDay = timeOfDay.hour + timeOfDay.minute / 60
+  const totalHours = totalHoursSinceEpoch + hourOfDay
 
   // Calculate nodal corrections (shared across constituents)
   const nodalFactors = calculateNodalFactors(date)
@@ -95,10 +96,16 @@ export function predictTideLevel(
   // Harmonic synthesis: sum all constituent contributions
   let tideLevel = meanSeaLevel
   let maxConstituent = { name: '', amplitude: 0 }
+  let constituentsUsed = 0
 
   for (const constituent of TIDAL_CONSTITUENTS) {
     // Get regional-specific parameters
     const amplitude = getRegionalAmplitude(constituent, region)
+    
+    // Skip if amplitude is 0 or not defined
+    if (!amplitude || amplitude <= 0) continue
+    
+    constituentsUsed++
     const phaseLag = getRegionalPhaseLag(constituent, region)
 
     // Apply nodal factor if applicable
@@ -138,7 +145,7 @@ export function predictTideLevel(
     time: `${timeOfDay.hour.toString().padStart(2, '0')}:${timeOfDay.minute.toString().padStart(2, '0')}`,
     level: Number.parseFloat(tideLevel.toFixed(2)),
     constituent: maxConstituent.name,
-    confidence: 88, // Base confidence from constituent count
+    confidence: Math.min(95, 88 + (constituentsUsed / TIDAL_CONSTITUENTS.length) * 5), // Confidence based on constituents used
   }
 }
 
@@ -296,20 +303,42 @@ export function printConstituentSummary(): void {
   console.log(`  Long Period: ${CONSTITUENT_STATS.longperiod}`)
   console.log(`  Shallow Water: ${CONSTITUENT_STATS.shallow}`)
 
+  console.log('\nConstituent Coverage:')
+  const withGulfAmplitude = TIDAL_CONSTITUENTS.filter(c => c.regionAmplitude.gulfOfThailand).length
+  const withAndamanAmplitude = TIDAL_CONSTITUENTS.filter(c => c.regionAmplitude.andamanSea).length
+  const withGulfPhase = TIDAL_CONSTITUENTS.filter(c => c.phaseLag.gulfOfThailand !== undefined).length
+  const withAndamanPhase = TIDAL_CONSTITUENTS.filter(c => c.phaseLag.andamanSea !== undefined).length
+  
+  console.log(`  Gulf of Thailand amplitude: ${withGulfAmplitude}/${CONSTITUENT_STATS.total}`)
+  console.log(`  Andaman Sea amplitude: ${withAndamanAmplitude}/${CONSTITUENT_STATS.total}`)
+  console.log(`  Gulf of Thailand phase: ${withGulfPhase}/${CONSTITUENT_STATS.total}`)
+  console.log(`  Andaman Sea phase: ${withAndamanPhase}/${CONSTITUENT_STATS.total}`)
+
+  // Check for missing data
+  const missingGulfAmp = TIDAL_CONSTITUENTS.filter(c => !c.regionAmplitude.gulfOfThailand && c.regionAmplitude.gulfOfThailand !== 0)
+  if (missingGulfAmp.length > 0) {
+    console.warn('⚠️ Missing Gulf amplitude for:', missingGulfAmp.map(c => c.name).join(', '))
+  }
+
+  const missingAndamanAmp = TIDAL_CONSTITUENTS.filter(c => !c.regionAmplitude.andamanSea && c.regionAmplitude.andamanSea !== 0)
+  if (missingAndamanAmp.length > 0) {
+    console.warn('⚠️ Missing Andaman amplitude for:', missingAndamanAmp.map(c => c.name).join(', '))
+  }
+
   console.log('\nTop Constituents by Amplitude (Gulf of Thailand):')
   const sorted = [...TIDAL_CONSTITUENTS].sort(
-    (a, b) => b.regionAmplitude.gulfOfThailand - a.regionAmplitude.gulfOfThailand
+    (a, b) => (b.regionAmplitude.gulfOfThailand || 0) - (a.regionAmplitude.gulfOfThailand || 0)
   )
-  sorted.slice(0, 10).forEach(c => {
-    console.log(`  ${c.name}: ${c.regionAmplitude.gulfOfThailand.toFixed(3)}m (${c.description})`)
+  sorted.slice(0, 10).forEach((c, i) => {
+    console.log(`  ${i+1}. ${c.name}: ${(c.regionAmplitude.gulfOfThailand || 0).toFixed(3)}m (${c.description})`)
   })
 
   console.log('\nTop Constituents by Amplitude (Andaman Sea):')
   const sortedAndaman = [...TIDAL_CONSTITUENTS].sort(
-    (a, b) => b.regionAmplitude.andamanSea - a.regionAmplitude.andamanSea
+    (a, b) => (b.regionAmplitude.andamanSea || 0) - (a.regionAmplitude.andamanSea || 0)
   )
-  sortedAndaman.slice(0, 10).forEach(c => {
-    console.log(`  ${c.name}: ${c.regionAmplitude.andamanSea.toFixed(3)}m (${c.description})`)
+  sortedAndaman.slice(0, 10).forEach((c, i) => {
+    console.log(`  ${i+1}. ${c.name}: ${(c.regionAmplitude.andamanSea || 0).toFixed(3)}m (${c.description})`)
   })
 
   console.groupEnd()

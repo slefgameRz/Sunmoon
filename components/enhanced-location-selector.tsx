@@ -137,16 +137,28 @@ export default function EnhancedLocationSelector() {
         setCurrentWeatherData(result.weatherData)
         setForecastData(result)
       } else {
-        throw new Error("ไม่พบข้อมูล")
+        const fallbackMessage = result?.error || "ไม่พบข้อมูล"
+        setCurrentTideData({
+          ...defaultTideData,
+          apiStatus: "error",
+          apiStatusMessage: fallbackMessage,
+          lastUpdated: new Date().toISOString(),
+        })
+        setCurrentWeatherData(defaultWeatherData)
+        setForecastData(result)
       }
     } catch (error) {
       console.error("Error fetching forecast:", error)
+      const fallbackMessage =
+        error instanceof Error && error.message ? error.message : "ไม่สามารถโหลดข้อมูลได้"
       setCurrentTideData({
         ...defaultTideData,
         apiStatus: "error",
-        apiStatusMessage: "ไม่สามารถโหลดข้อมูลได้"
+        apiStatusMessage: fallbackMessage,
+        lastUpdated: new Date().toISOString(),
       })
       setCurrentWeatherData(defaultWeatherData)
+      setForecastData(null)
     } finally {
       setLoading(false)
     }
@@ -591,48 +603,104 @@ export default function EnhancedLocationSelector() {
             </Card>
           ) : (
             <>
-              {/* Current Status Hero Banner */}
-              <Card className="relative overflow-hidden shadow-xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white border-0">
-                <div className="absolute inset-0 bg-black/10"></div>
-                <CardContent className="relative py-8 md:py-10 px-6 md:px-8" role="status" aria-live="polite">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              {/* Current Status Hero Banner - Enhanced */}
+              <Card className="relative overflow-hidden shadow-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 text-white border-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-black/10"></div>
+                <div className="absolute inset-0 overflow-hidden opacity-20">
+                  <div className="absolute top-0 left-0 w-40 h-40 bg-white rounded-full blur-3xl"></div>
+                  <div className="absolute bottom-0 right-0 w-40 h-40 bg-indigo-300 rounded-full blur-3xl"></div>
+                </div>
+                <CardContent className="relative py-10 md:py-12 px-6 md:px-8" role="status" aria-live="polite">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    {/* Left: Main Water Level Display */}
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-md hover:bg-white/30 transition-all duration-300">
                           <Waves className="h-8 w-8" aria-hidden="true" />
                         </div>
                         <div>
-                          <h2 className="text-2xl md:text-3xl font-bold">ระดับน้ำปัจจุบัน</h2>
-                          <p className="text-blue-100 text-sm md:text-base">
+                          <h2 className="text-xl md:text-2xl font-bold">ระดับน้ำปัจจุบัน</h2>
+                          <p className="text-blue-100 text-sm md:text-base font-medium">
                             {currentTideData.waterLevelStatus || "กำลังวิเคราะห์"}
                           </p>
                         </div>
                       </div>
-                      <div className="text-5xl md:text-6xl lg:text-7xl font-black">
-                        {currentTideData.currentWaterLevel?.toFixed(2)} <span className="text-2xl md:text-3xl">ม.</span>
+                      <div className="flex items-baseline gap-2">
+                        <div className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tight">
+                          {currentTideData.currentWaterLevel?.toFixed(2)}
+                        </div>
+                        <div className="text-2xl md:text-3xl font-bold pb-3">เมตร</div>
                       </div>
                     </div>
 
-                    <div className="lg:text-right space-y-4">
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full backdrop-blur-sm">
-                        <Clock className="h-4 w-4" aria-hidden="true" />
-                        <span className="text-sm font-medium">
-                          {new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                    {/* Right: Tide Status & Time */}
+                    <div className="grid grid-cols-2 gap-4 lg:text-right">
+                      {/* Current Time */}
+                      <div className="lg:col-span-2 flex items-center justify-center lg:justify-end gap-3 px-4 py-3 bg-white/10 rounded-xl backdrop-blur-md border border-white/20 hover:bg-white/15 transition-all duration-300">
+                        <Clock className="h-5 w-5" aria-hidden="true" />
+                        <div>
+                          <div className="text-xs text-blue-100">เวลาปัจจุบัน</div>
+                          <div className="text-lg md:text-xl font-bold">
+                            {new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Mini tide indicators */}
-                      <div className="flex justify-center lg:justify-end gap-4">
-                        <div className="text-center">
-                          <div className="text-2xl mb-1">🌊</div>
-                          <div className="text-xs text-blue-100">น้ำขึ้น</div>
-                          <div className="font-bold">{currentTideData.highTideTime || "--:--"}</div>
+                      {/* High Tide */}
+                      <div className="px-4 py-3 bg-white/10 rounded-xl backdrop-blur-md border border-white/20 hover:bg-white/15 transition-all duration-300 text-center">
+                        <div className="text-3xl mb-1">🌊</div>
+                        <div className="text-xs text-blue-100 font-medium">น้ำขึ้นสูง</div>
+                        <div className="text-lg md:text-xl font-bold">
+                          {currentTideData.highTideTime || "--:--"}
                         </div>
-                        <div className="text-center">
-                          <div className="text-2xl mb-1">🏖️</div>
-                          <div className="text-xs text-blue-100">น้ำลง</div>
-                          <div className="font-bold">{currentTideData.lowTideTime || "--:--"}</div>
+                      </div>
+
+                      {/* Low Tide */}
+                      <div className="px-4 py-3 bg-white/10 rounded-xl backdrop-blur-md border border-white/20 hover:bg-white/15 transition-all duration-300 text-center">
+                        <div className="text-3xl mb-1">�️</div>
+                        <div className="text-xs text-blue-100 font-medium">น้ำลงต่ำ</div>
+                        <div className="text-lg md:text-xl font-bold">
+                          {currentTideData.lowTideTime || "--:--"}
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Status Bar */}
+                  <div className="mt-8 pt-6 border-t border-white/20 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {/* Tide Status */}
+                    <div className="text-center">
+                      <div className="text-xs text-blue-100 font-medium mb-1">สถานะน้ำ</div>
+                      <div className="text-lg md:text-xl font-bold">
+                        {currentTideData.tideStatus === "น้ำเป็น" ? "น้ำเป็น" : "น้ำตาย"}
+                      </div>
+                    </div>
+                    {/* Lunar Phase */}
+                    <div className="text-center">
+                      <div className="text-xs text-blue-100 font-medium mb-1">ข้างจันทร์</div>
+                      <div className="text-lg md:text-xl font-bold">
+                        {currentTideData.lunarPhaseKham} {currentTideData.isWaxingMoon ? "ขึ้น" : "แรม"}
+                      </div>
+                    </div>
+                    {/* Location */}
+                    <div className="text-center">
+                      <div className="text-xs text-blue-100 font-medium mb-1">พิกัด</div>
+                      <div className="text-sm md:text-base font-mono font-bold truncate">
+                        {selectedLocation.lat.toFixed(2)}° N
+                      </div>
+                    </div>
+                    {/* Reference */}
+                    <div className="text-center">
+                      <div className="text-xs text-blue-100 font-medium mb-1">สถานะ API</div>
+                      <div className="inline-flex items-center gap-1">
+                        <span className={cn(
+                          "w-2 h-2 rounded-full",
+                          currentTideData.apiStatus === "success" ? "bg-green-400" :
+                          currentTideData.apiStatus === "loading" ? "bg-yellow-400 animate-pulse" : "bg-red-400"
+                        )} />
+                        <span className="text-xs font-bold">
+                          {currentTideData.apiStatus === "success" ? "ปกติ" : "ตรวจสอบ"}
+                        </span>
                       </div>
                     </div>
                   </div>

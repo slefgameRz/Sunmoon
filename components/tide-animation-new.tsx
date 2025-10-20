@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUp, ArrowDown, Droplets, Clock, TrendingUp, Info, ChevronDown, ChevronUp } from "lucide-react"
+import { ArrowUp, ArrowDown, Droplets, Clock, TrendingUp, Info, ChevronDown, ChevronUp, ZoomIn, ZoomOut } from "lucide-react"
 import type { TideData } from "@/lib/tide-service"
 import { cn } from "@/lib/utils"
 
@@ -44,6 +44,8 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
   const [showHigh, setShowHigh] = React.useState(true)
   const [showLow, setShowLow] = React.useState(true)
   const [isExpanded, setIsExpanded] = React.useState(true)
+  const [zoomLevel, setZoomLevel] = React.useState(1)
+  const [hoveredPoint, setHoveredPoint] = React.useState<{ x: number; y: number; time: string; level: number } | null>(null)
 
   const graphData = Array.isArray(tideData?.graphData) ? tideData.graphData : []
 
@@ -66,14 +68,15 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
     }
 
     const pts = graphData.map((p: any, i: number) => {
-      const x = (i / Math.max(1, graphData.length - 1)) * (size.w - 80) + 60
+      const baseX = (i / Math.max(1, graphData.length - 1)) * (size.w - 80) + 60
+      const x = baseX * zoomLevel + (size.w / 2) * (1 - zoomLevel)
       const y = size.h - ((p.level - TIDE_VISUAL_MIN) / VISUAL_RANGE) * (size.h - 60)
       return { x, y, time: p.time, level: p.level }
     })
 
     const path = pointsToSmoothPath(pts.map(pt => ({ x: pt.x, y: pt.y })))
     return { points: pts, pathD: path || '' }
-  }, [graphData, size])
+  }, [graphData, size, zoomLevel])
 
   return (
     <div className="space-y-8" aria-live="polite">
@@ -192,6 +195,36 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
         {/* Graph Content - Expandable */}
         {isExpanded && (
         <div className="p-8 w-full">
+          {/* Zoom Controls */}
+          <div className="flex items-center justify-between mb-4 px-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setZoomLevel(Math.max(1, zoomLevel - 0.2))}
+                disabled={zoomLevel <= 1}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="ซูมออก"
+                title="ซูมออก"
+              >
+                <ZoomOut className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+              </button>
+              <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 min-w-[60px] text-center">
+                {(zoomLevel * 100).toFixed(0)}%
+              </span>
+              <button
+                onClick={() => setZoomLevel(Math.min(2, zoomLevel + 0.2))}
+                disabled={zoomLevel >= 2}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="ซูมเข้า"
+                title="ซูมเข้า"
+              >
+                <ZoomIn className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+              </button>
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Hover บนกราฟเพื่อดูค่าน้ำ
+            </div>
+          </div>
+
           {/* SVG Graph */}
           <div className="w-full overflow-x-auto">
             <svg
@@ -200,7 +233,30 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
               viewBox={`0 0 ${size.w} ${size.h}`}
               width="100%"
               preserveAspectRatio="xMidYMid meet"
-              className="bg-gradient-to-b from-white to-blue-50/30 dark:from-slate-800 dark:to-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600/50 w-full"
+              className="bg-gradient-to-b from-white to-blue-50/30 dark:from-slate-800 dark:to-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600/50 w-full cursor-crosshair"
+              onMouseMove={(e) => {
+                const svg = e.currentTarget
+                const rect = svg.getBoundingClientRect()
+                const x = e.clientX - rect.left
+                const y = e.clientY - rect.top
+                const viewBoxX = (x / rect.width) * size.w
+                const viewBoxY = (y / rect.height) * size.h
+
+                // Find nearest point
+                let nearest: any = null
+                let minDist = Infinity
+
+                points.forEach(pt => {
+                  const dist = Math.sqrt(Math.pow(pt.x - viewBoxX, 2) + Math.pow(pt.y - viewBoxY, 2))
+                  if (dist < minDist && dist < 40) {
+                    minDist = dist
+                    nearest = pt
+                  }
+                })
+
+                setHoveredPoint(nearest)
+              }}
+              onMouseLeave={() => setHoveredPoint(null)}
             >
             <defs>
               <linearGradient id="grad-tide-fill-new" x1="0" x2="0" y1="0" y2="1">
@@ -313,6 +369,64 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
                 </g>
               )
             })}
+
+            {/* Hover Tooltip */}
+            {hoveredPoint && (
+              <g>
+                {/* Vertical guide line */}
+                <line
+                  x1={hoveredPoint.x}
+                  y1={0}
+                  x2={hoveredPoint.x}
+                  y2={size.h}
+                  stroke="#cbd5e1"
+                  strokeWidth={1}
+                  strokeDasharray="4,4"
+                  opacity={0.6}
+                />
+                {/* Point highlight */}
+                <circle
+                  cx={hoveredPoint.x}
+                  cy={hoveredPoint.y}
+                  r={6}
+                  fill="#3b82f6"
+                  stroke="#fff"
+                  strokeWidth={2}
+                />
+                {/* Tooltip background */}
+                <rect
+                  x={Math.max(10, Math.min(hoveredPoint.x - 60, size.w - 130))}
+                  y={hoveredPoint.y - 50}
+                  width={120}
+                  height={45}
+                  rx={6}
+                  fill="#1e293b"
+                  opacity={0.95}
+                />
+                {/* Tooltip text - Time */}
+                <text
+                  x={Math.max(10, Math.min(hoveredPoint.x - 60, size.w - 130)) + 60}
+                  y={hoveredPoint.y - 30}
+                  fontSize={12}
+                  fill="#f1f5f9"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  {hoveredPoint.time}
+                </text>
+                {/* Tooltip text - Level */}
+                <text
+                  x={Math.max(10, Math.min(hoveredPoint.x - 60, size.w - 130)) + 60}
+                  y={hoveredPoint.y - 14}
+                  fontSize={13}
+                  fill="#3b82f6"
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  {hoveredPoint.level.toFixed(2)}ม.
+                </text>
+              </g>
+            )}
           </svg>
           </div>
         </div>

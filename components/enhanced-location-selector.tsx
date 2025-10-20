@@ -40,7 +40,7 @@ import { format } from "date-fns"
 import { th } from "date-fns/locale"
 import { useTheme } from "next-themes"
 import MapSelector from "./map-selector"
-import TideAnimation from "./tide-animation"
+import TideAnimationNew from "./tide-animation-new"
 import ApiStatusDashboard from "./api-status-dashboard"
 import CommunicationHub from "./communication-hub"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -500,8 +500,8 @@ export default function EnhancedLocationSelector() {
                     ชั่วโมง
                   </Label>
                   <Select value={selectedHour} onValueChange={setSelectedHour}>
-                    <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600" aria-labelledby={hourLabelId}>
-                      <SelectValue placeholder="เลือกชั่วโมง" />
+                    <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 font-semibold text-lg" aria-labelledby={hourLabelId}>
+                      <span className="text-green-700 dark:text-green-300">{selectedHour}</span>
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({ length: 24 }, (_, i) => (
@@ -519,8 +519,8 @@ export default function EnhancedLocationSelector() {
                     นาที
                   </Label>
                   <Select value={selectedMinute} onValueChange={setSelectedMinute}>
-                    <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600" aria-labelledby={minuteLabelId}>
-                      <SelectValue placeholder="เลือกนาที" />
+                    <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 font-semibold text-lg" aria-labelledby={minuteLabelId}>
+                      <span className="text-green-700 dark:text-green-300">{selectedMinute}</span>
                     </SelectTrigger>
                     <SelectContent>
                       {['00', '15', '30', '45'].map(minute => (
@@ -534,12 +534,12 @@ export default function EnhancedLocationSelector() {
               </div>
 
               {/* Selected Time Display */}
-              <div className="bg-gradient-to-r from-green-100/50 to-emerald-100/50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg p-4 border border-green-200 dark:border-green-800/50">
+              <div className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 rounded-lg p-4 border-2 border-green-300 dark:border-green-700/60 shadow-sm">
                 <div className="flex items-center justify-center gap-3">
-                  <Clock className="h-5 w-5 text-green-600 dark:text-green-400" aria-hidden="true" />
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">เวลาที่เลือก</p>
-                    <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+                  <Clock className="h-6 w-6 text-green-600 dark:text-green-400" aria-hidden="true" />
+                  <div className="text-center">
+                    <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold uppercase tracking-wide">เวลาที่เลือก</p>
+                    <p className="text-3xl font-bold text-green-700 dark:text-green-300 font-mono">
                       {selectedHour}:{selectedMinute}
                     </p>
                   </div>
@@ -857,7 +857,7 @@ export default function EnhancedLocationSelector() {
               )}
 
               {/* Tide Graph - Full Width */}
-              <TideAnimation tideData={currentTideData} />
+              <TideAnimationNew tideData={currentTideData} />
 
               {/* Status Footer */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">

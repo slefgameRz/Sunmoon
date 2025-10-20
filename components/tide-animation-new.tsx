@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUp, ArrowDown, Droplets, Clock, TrendingUp, Info } from "lucide-react"
+import { ArrowUp, ArrowDown, Droplets, Clock, TrendingUp, Info, ChevronDown, ChevronUp } from "lucide-react"
 import type { TideData } from "@/lib/tide-service"
 import { cn } from "@/lib/utils"
 
@@ -43,6 +43,7 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
 
   const [showHigh, setShowHigh] = React.useState(true)
   const [showLow, setShowLow] = React.useState(true)
+  const [isExpanded, setIsExpanded] = React.useState(true)
 
   const graphData = Array.isArray(tideData?.graphData) ? tideData.graphData : []
 
@@ -153,7 +154,7 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
       <div className="bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 shadow-lg overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-700 border-b border-gray-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
               <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
@@ -162,20 +163,34 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
               <p className="text-xs text-gray-600 dark:text-gray-400">ข้อมูลสภาพน้ำตามเวลา</p>
             </div>
           </div>
-          <div className={cn(
-            "px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2",
-            apiStatus === 'success'
-              ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
-              : apiStatus === 'loading'
-              ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300"
-              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-          )}>
-            <span className="w-2 h-2 rounded-full animate-pulse" />
-            {apiStatus === 'loading' ? 'กำลังโหลด' : apiStatus === 'success' ? 'สดใหม่' : 'ออฟไลน์'}
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2",
+              apiStatus === 'success'
+                ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
+                : apiStatus === 'loading'
+                ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+            )}>
+              <span className="w-2 h-2 rounded-full animate-pulse" />
+              {apiStatus === 'loading' ? 'กำลังโหลด' : apiStatus === 'success' ? 'สดใหม่' : 'ออฟไลน์'}
+            </div>
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
+              aria-label={isExpanded ? "ซ่อนกราฟ" : "แสดงกราฟ"}
+            >
+              {isExpanded ? (
+                <ChevronUp className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Graph Content */}
+        {/* Graph Content - Expandable */}
+        {isExpanded && (
         <div className="p-8">
           {/* SVG Graph */}
           <svg
@@ -300,6 +315,7 @@ export default function TideAnimationNew({ tideData }: TideAnimationProps) {
             })}
           </svg>
         </div>
+        )}
 
         {/* Controls */}
         <div className="px-8 py-6 bg-gray-50 dark:bg-slate-700/50 border-t border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4">

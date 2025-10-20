@@ -104,6 +104,8 @@ export default function EnhancedLocationSelector() {
   const alertShown = useRef(false)
   const [isHydrated, setIsHydrated] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const [isHourOpen, setIsHourOpen] = useState(false)
+  const [isMinuteOpen, setIsMinuteOpen] = useState(false)
   const [isMapDialogOpen, setIsMapDialogOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [favorites, setFavorites] = useState<LocationData[]>([])
@@ -499,18 +501,40 @@ export default function EnhancedLocationSelector() {
                     <Clock className="h-4 w-4 text-green-600" aria-hidden="true" />
                     ชั่วโมง
                   </Label>
-                  <Select value={selectedHour} onValueChange={setSelectedHour}>
-                    <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 font-semibold text-lg" aria-labelledby={hourLabelId}>
-                      <span className="text-green-700 dark:text-green-300">{selectedHour}</span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <SelectItem key={i} value={i.toString().padStart(2, '0')}>
-                          {i.toString().padStart(2, '0')}:00
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={isHourOpen} onOpenChange={setIsHourOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-700 font-semibold text-lg"
+                        aria-labelledby={hourLabelId}
+                        aria-haspopup="dialog"
+                      >
+                        <Clock className="mr-2 h-4 w-4" aria-hidden="true" />
+                        <span className="truncate text-green-700 dark:text-green-300">{selectedHour}:00</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-2" align="start">
+                      <div className="grid grid-cols-6 gap-2">
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              setSelectedHour(i.toString().padStart(2, '0'))
+                              setIsHourOpen(false)
+                            }}
+                            className={cn(
+                              "p-2 rounded-lg text-sm font-semibold transition-all",
+                              selectedHour === i.toString().padStart(2, '0')
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                            )}
+                          >
+                            {i.toString().padStart(2, '0')}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="space-y-2">
@@ -518,18 +542,40 @@ export default function EnhancedLocationSelector() {
                     <Clock className="h-4 w-4 text-green-600" aria-hidden="true" />
                     นาที
                   </Label>
-                  <Select value={selectedMinute} onValueChange={setSelectedMinute}>
-                    <SelectTrigger className="w-full bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 font-semibold text-lg" aria-labelledby={minuteLabelId}>
-                      <span className="text-green-700 dark:text-green-300">{selectedMinute}</span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {['00', '15', '30', '45'].map(minute => (
-                        <SelectItem key={minute} value={minute}>
-                          :{minute}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={isMinuteOpen} onOpenChange={setIsMinuteOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-700 font-semibold text-lg"
+                        aria-labelledby={minuteLabelId}
+                        aria-haspopup="dialog"
+                      >
+                        <Clock className="mr-2 h-4 w-4" aria-hidden="true" />
+                        <span className="truncate text-green-700 dark:text-green-300">:{selectedMinute}</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-2" align="start">
+                      <div className="grid grid-cols-2 gap-2">
+                        {['00', '15', '30', '45'].map(minute => (
+                          <button
+                            key={minute}
+                            onClick={() => {
+                              setSelectedMinute(minute)
+                              setIsMinuteOpen(false)
+                            }}
+                            className={cn(
+                              "p-3 rounded-lg text-sm font-semibold transition-all",
+                              selectedMinute === minute
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                            )}
+                          >
+                            :{minute}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 

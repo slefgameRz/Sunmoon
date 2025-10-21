@@ -34,7 +34,7 @@ import { format } from "date-fns"
 import { th } from "date-fns/locale" // Import Thai locale for date-fns
 import { useTheme } from "next-themes" // Import useTheme hook
 // Map selector UI temporarily disabled to focus on UI bug fixes
-import TideAnimation from "./tide-animation" // Import the new TideAnimation component
+import TideAnimationNew from "./tide-animation-new" // Import the new TideAnimation component
 
 // Default values if API calls fail
 const defaultTideData = {
@@ -477,7 +477,7 @@ export default function LocationSelector() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4">
-                <TideAnimation
+                <TideAnimationNew
                   tideData={currentTideData}
                 />
               </CardContent>

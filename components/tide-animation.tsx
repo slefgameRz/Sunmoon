@@ -70,8 +70,11 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
     })
 
     const path = pointsToSmoothPath(pts.map(pt => ({ x: pt.x, y: pt.y })))
-    return { points: pts, pathD: path || '' }
+    return { points: pts, pathD: path && typeof path === 'string' ? path : '' }
   }, [graphData, size])
+
+  // Ensure pathD is always a string
+  const safePathD = pathD && typeof pathD === 'string' && pathD.length > 0 ? pathD : null
 
   return (
     <div className="space-y-6" aria-live="polite">
@@ -217,20 +220,20 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
             <text x={12} y={20} fontSize={10} fill="#64748b" fontWeight="700">ม.</text>
 
             {/* area under curve */}
-            {points.length > 1 && pathD && (
+            {points.length > 1 && safePathD && (
               <path
-                d={`${pathD} L ${size.w} ${size.h} L 50 ${size.h} Z`}
+                d={`${safePathD} L ${size.w} ${size.h} L 50 ${size.h} Z`}
                 fill="url(#grad-tide-fill)"
                 opacity={1}
               />
             )}
 
             {/* smooth line stroke with glow */}
-            {points.length > 1 && pathD && (
+            {points.length > 1 && safePathD && (
               <>
                 {/* Glow effect */}
                 <path
-                  d={pathD}
+                  d={safePathD}
                   fill="none"
                   stroke="#3b82f6"
                   strokeWidth={4}
@@ -241,7 +244,7 @@ export default function TideAnimation({ tideData }: TideAnimationProps) {
                 />
                 {/* Main line */}
                 <path
-                  d={pathD}
+                  d={safePathD}
                   fill="none"
                   stroke="url(#grad-tide-line)"
                   strokeWidth={3}

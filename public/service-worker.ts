@@ -6,7 +6,7 @@
 
 declare const self: ServiceWorkerGlobalScope
 
-const CACHE_VERSION = 'seapalo-v1'
+const CACHE_VERSION = 'seapalo-v2'
 const TILE_CACHE = `${CACHE_VERSION}-tiles`
 const APP_CACHE = `${CACHE_VERSION}-app`
 const API_CACHE = `${CACHE_VERSION}-api`

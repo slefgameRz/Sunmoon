@@ -47,7 +47,7 @@ function resolveRuntimeBaseUrl(explicitBase: string): string {
 
 export class CompactForecastClient {
   private baseUrl: string
-  private lastLocation?: { lat: number; lon: number }
+  private lastLocation?: { lat: number; lon: number; name?: string }
   private cache: Map<string, CompactFrame> = new Map()
   
   constructor(baseUrl: string = '') {

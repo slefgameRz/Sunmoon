@@ -26,6 +26,18 @@ const nextConfig = {
       },
     ];
   },
+  // Allow dev tunnels and multiple hosts for development
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        "localhost:3000",
+        "127.0.0.1:3000",
+        "*.devtunnels.ms", // Dev tunnel origin
+        "*.ngrok.io", // ngrok tunnels
+        "*.ngrok-free.app", // ngrok free tier
+      ],
+    },
+  },
 };
 
 export default nextConfig;

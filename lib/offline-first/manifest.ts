@@ -50,6 +50,7 @@ export function validateTileMeta(meta: TileMeta): boolean {
  * WebCrypto (Ed25519 or RSA-PSS) once signing infrastructure is available.
  */
 export async function verifyManifestSignature(manifest: TileManifest): Promise<boolean> {
+  void manifest;
   if (process.env.NODE_ENV === "development") {
     return true
   }

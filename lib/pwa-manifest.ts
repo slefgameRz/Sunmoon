@@ -1,40 +1,42 @@
 /**
  * PWA Manifest with Web App Manifest Signing
- * 
+ *
  * Provides security for Progressive Web App installation
  * and signed web app resources
  */
 
+const SW_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SERVICE_WORKER === "true";
+
 export interface WebAppManifest {
-  name: string
-  short_name: string
-  description: string
-  start_url: string
-  scope: string
-  display: 'standalone' | 'fullscreen' | 'minimal-ui' | 'browser'
-  theme_color: string
-  background_color: string
-  orientation: 'portrait-primary' | 'landscape-primary' | 'any'
+  name: string;
+  short_name: string;
+  description: string;
+  start_url: string;
+  scope: string;
+  display: "standalone" | "fullscreen" | "minimal-ui" | "browser";
+  theme_color: string;
+  background_color: string;
+  orientation: "portrait-primary" | "landscape-primary" | "any";
   icons: Array<{
-    src: string
-    sizes: string
-    type: string
-    purpose: string
-  }>
-  categories: string[]
+    src: string;
+    sizes: string;
+    type: string;
+    purpose: string;
+  }>;
+  categories: string[];
   screenshots: Array<{
-    src: string
-    sizes: string
-    form_factor: 'narrow' | 'wide'
-  }>
+    src: string;
+    sizes: string;
+    form_factor: "narrow" | "wide";
+  }>;
   shortcuts: Array<{
-    name: string
-    url: string
+    name: string;
+    url: string;
     icons: Array<{
-      src: string
-      sizes: string
-    }>
-  }>
+      src: string;
+      sizes: string;
+    }>;
+  }>;
 }
 
 /**
@@ -42,85 +44,85 @@ export interface WebAppManifest {
  */
 export function generateWebManifest(): WebAppManifest {
   return {
-    name: 'SEAPALO - Thai Tide Prediction PWA',
-    short_name: 'SEAPALO',
+    name: "SEAPALO - Thai Tide Prediction PWA",
+    short_name: "SEAPALO",
     description:
-      'Real-time tide prediction for Thai coastal regions. Offline-capable PWA with 37+ tidal constituents and field-validated accuracy.',
-    start_url: '/?source=pwa',
-    scope: '/',
-    display: 'standalone',
-    theme_color: '#0066cc',
-    background_color: '#ffffff',
-    orientation: 'portrait-primary',
+      "Real-time tide prediction for Thai coastal regions. Offline-capable PWA with 37+ tidal constituents and field-validated accuracy.",
+    start_url: "/?source=pwa",
+    scope: "/",
+    display: "standalone",
+    theme_color: "#0066cc",
+    background_color: "#ffffff",
+    orientation: "portrait-primary",
     icons: [
       {
-        src: '/icon-192.png',
-        sizes: '192x192',
-        type: 'image/png',
-        purpose: 'any',
+        src: "/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
       },
       {
-        src: '/icon-512.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'any',
+        src: "/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
       },
       {
-        src: '/icon-maskable-192.png',
-        sizes: '192x192',
-        type: 'image/png',
-        purpose: 'maskable',
+        src: "/icon-maskable-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
       },
       {
-        src: '/icon-maskable-512.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'maskable',
+        src: "/icon-maskable-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
-    categories: ['weather', 'utilities', 'productivity'],
+    categories: ["weather", "utilities", "productivity"],
     screenshots: [
       {
-        src: '/screenshot-narrow-1.png',
-        sizes: '540x720',
-        form_factor: 'narrow',
+        src: "/screenshot-narrow-1.png",
+        sizes: "540x720",
+        form_factor: "narrow",
       },
       {
-        src: '/screenshot-wide-1.png',
-        sizes: '1280x720',
-        form_factor: 'wide',
+        src: "/screenshot-wide-1.png",
+        sizes: "1280x720",
+        form_factor: "wide",
       },
     ],
     shortcuts: [
       {
-        name: 'Bangkok Tide',
-        url: '/?location=bangkok',
+        name: "Bangkok Tide",
+        url: "/?location=bangkok",
         icons: [
           {
-            src: '/icon-shortcut-bangkok.png',
-            sizes: '192x192',
+            src: "/icon-shortcut-bangkok.png",
+            sizes: "192x192",
           },
         ],
       },
       {
-        name: 'Phuket Tide',
-        url: '/?location=phuket',
+        name: "Phuket Tide",
+        url: "/?location=phuket",
         icons: [
           {
-            src: '/icon-shortcut-phuket.png',
-            sizes: '192x192',
+            src: "/icon-shortcut-phuket.png",
+            sizes: "192x192",
           },
         ],
       },
     ],
-  }
+  };
 }
 
 /**
  * Generate manifest as JSON with security headers
  */
 export function generateManifestJSON(): string {
-  return JSON.stringify(generateWebManifest(), null, 2)
+  return JSON.stringify(generateWebManifest(), null, 2);
 }
 
 /**
@@ -128,19 +130,27 @@ export function generateManifestJSON(): string {
  */
 export function getManifestHeaders(): Record<string, string> {
   return {
-    'Content-Type': 'application/manifest+json',
-    'Cache-Control': 'public, max-age=3600', // 1 hour cache
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'SAMEORIGIN',
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'",
-  }
+    "Content-Type": "application/manifest+json",
+    "Cache-Control": "public, max-age=3600", // 1 hour cache
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Content-Security-Policy":
+      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'",
+  };
 }
 
 /**
  * Generate service worker registration snippet
  */
 export function generateServiceWorkerRegistration(): string {
+  if (!SW_ENABLED) {
+    return `
+// Service worker registration disabled at build time.
+console.info('Service worker registration skipped: NEXT_PUBLIC_ENABLE_SERVICE_WORKER != "true"');
+`;
+  }
+
   return `
 // Register Service Worker
 if ('serviceWorker' in navigator) {
@@ -150,12 +160,12 @@ if ('serviceWorker' in navigator) {
         scope: '/',
       });
       console.log('Service Worker registered:', registration);
-      
+
       // Check for updates every hour
       setInterval(() => {
         registration.update();
       }, 3600000);
-      
+
       // Handle updates
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
@@ -180,7 +190,7 @@ if (navigator.storage && navigator.storage.persist) {
     console.log('Persistent storage:', persistent);
   });
 }
-  `
+  `;
 }
 
 /**
@@ -214,54 +224,55 @@ export function generatePWAMetaTags(): string {
 <!-- Splash Screens (iOS) -->
 <link rel="apple-touch-startup-image" href="/splash-1242x2208.png" sizes="1242x2208">
 <link rel="apple-touch-startup-image" href="/splash-1536x2048.png" sizes="1536x2048">
-  `
+  `;
 }
 
 /**
  * Generate next.config security headers
  */
 export function generateSecurityHeaders(): Array<{
-  key: string
-  value: string
+  key: string;
+  value: string;
 }> {
   return [
     {
-      key: 'Content-Security-Policy',
+      key: "Content-Security-Policy",
       value:
         "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:",
     },
     {
-      key: 'X-Content-Type-Options',
-      value: 'nosniff',
+      key: "X-Content-Type-Options",
+      value: "nosniff",
     },
     {
-      key: 'X-Frame-Options',
-      value: 'SAMEORIGIN',
+      key: "X-Frame-Options",
+      value: "SAMEORIGIN",
     },
     {
-      key: 'X-XSS-Protection',
-      value: '1; mode=block',
+      key: "X-XSS-Protection",
+      value: "1; mode=block",
     },
     {
-      key: 'Referrer-Policy',
-      value: 'strict-origin-when-cross-origin',
+      key: "Referrer-Policy",
+      value: "strict-origin-when-cross-origin",
     },
     {
-      key: 'Strict-Transport-Security',
-      value: 'max-age=31536000; includeSubDomains; preload',
+      key: "Strict-Transport-Security",
+      value: "max-age=31536000; includeSubDomains; preload",
     },
     {
-      key: 'Permissions-Policy',
-      value: 'geolocation=(self), camera=(), microphone=(), payment=()',
+      key: "Permissions-Policy",
+      value: "geolocation=(self), camera=(), microphone=(), payment=()",
     },
-  ]
+  ];
 }
-
-export default {
+const pwaManifest = {
   generateWebManifest,
   generateManifestJSON,
   getManifestHeaders,
   generateServiceWorkerRegistration,
   generatePWAMetaTags,
   generateSecurityHeaders,
-}
+};
+
+export default pwaManifest;

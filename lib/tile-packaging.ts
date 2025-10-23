@@ -205,22 +205,60 @@ export async function decompressToString(payload: Uint8Array): Promise<string> {
   }
 }
 
+type BinaryLike = string | Uint8Array | ArrayBuffer | SharedArrayBuffer
+
+function isSharedArrayBuffer(value: unknown): value is SharedArrayBuffer {
+  return typeof SharedArrayBuffer !== 'undefined' && value instanceof SharedArrayBuffer
+}
+
+function toUint8Array(input: BinaryLike): Uint8Array {
+  if (typeof input === 'string') {
+    return TEXT_ENCODER.encode(input)
+  }
+
+  if (input instanceof Uint8Array) {
+    return new Uint8Array(input)
+  }
+
+  if (input instanceof ArrayBuffer) {
+    return new Uint8Array(input)
+  }
+
+  if (isSharedArrayBuffer(input)) {
+    const view = new Uint8Array(input)
+    const copy = new Uint8Array(view.length)
+    copy.set(view)
+    return copy
+  }
+
+  throw new TypeError('Unsupported binary input')
+}
+
+function toArrayBuffer(view: Uint8Array): ArrayBuffer {
+  const { buffer, byteOffset, byteLength } = view
+
+  if (buffer instanceof ArrayBuffer) {
+    if (byteOffset === 0 && byteLength === buffer.byteLength) {
+      return buffer
+    }
+    return buffer.slice(byteOffset, byteOffset + byteLength)
+  }
+
+  if (isSharedArrayBuffer(buffer)) {
+    const copy = new Uint8Array(byteLength)
+    copy.set(view)
+    return copy.buffer
+  }
+
+  throw new TypeError('Unsupported buffer source')
+}
+
 /**
  * Calculate SHA-256 checksum.
  */
-export async function calculateChecksum(data: string | ArrayBuffer | Uint8Array): Promise<string> {
-  let buffer: ArrayBuffer
-  if (typeof data === 'string') {
-    buffer = TEXT_ENCODER.encode(data).buffer as ArrayBuffer
-  } else if (data instanceof Uint8Array) {
-    buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer
-  } else if (typeof SharedArrayBuffer !== 'undefined' && (data as any) instanceof SharedArrayBuffer) {
-    // Convert SharedArrayBuffer to regular ArrayBuffer
-    buffer = new ArrayBuffer((data as any).byteLength)
-    new Uint8Array(buffer).set(new Uint8Array(data as any))
-  } else {
-    buffer = data as ArrayBuffer
-  }
+export async function calculateChecksum(data: BinaryLike): Promise<string> {
+  const bytes = toUint8Array(data)
+  const buffer = toArrayBuffer(bytes)
 
   const hash = await crypto.subtle.digest('SHA-256', buffer)
   const view = new Uint8Array(hash)
@@ -273,22 +311,9 @@ function sortValue(value: unknown): unknown {
 
 async function signManifest(
   manifest: Omit<TilePackageManifest, 'signature'> & { signature?: string },
-  secret: string | ArrayBuffer | Uint8Array,
+  secret: BinaryLike,
 ): Promise<string> {
-  let keyData: Uint8Array
-  if (typeof secret === 'string') {
-    keyData = TEXT_ENCODER.encode(secret)
-  } else if (secret instanceof Uint8Array) {
-    keyData = secret
-  } else if (typeof SharedArrayBuffer !== 'undefined' && (secret as any) instanceof SharedArrayBuffer) {
-    // Convert SharedArrayBuffer to regular Uint8Array
-    const buffer = new ArrayBuffer((secret as any).byteLength)
-    const temp = new Uint8Array(buffer)
-    temp.set(new Uint8Array(secret as any))
-    keyData = temp
-  } else {
-    keyData = new Uint8Array(secret as ArrayBuffer)
-  }
+  const keyData = toUint8Array(secret)
 
   const key = await crypto.subtle.importKey(
     'raw',
@@ -302,9 +327,10 @@ async function signManifest(
   const signatureBuffer = await crypto.subtle.sign('HMAC', key, TEXT_ENCODER.encode(canonical))
   const signatureArray = new Uint8Array(signatureBuffer)
 
-  const globalBuffer = (globalThis as any).Buffer
-  if (globalBuffer?.from) {
-    return globalBuffer.from(signatureArray).toString('base64')
+  const nodeGlobal = globalThis as { Buffer?: { from(input: Uint8Array | string, encoding?: 'base64' | 'utf8'): { toString(encoding: 'base64' | 'utf8'): string } } }
+  const bufferFactory = nodeGlobal.Buffer
+  if (bufferFactory?.from) {
+    return bufferFactory.from(signatureArray).toString('base64')
   }
 
   let binary = ''
@@ -322,23 +348,23 @@ function diffConstituents(
   const oldMap = new Map(oldList.map((c) => [c.name, c]))
   const newMap = new Map(newList.map((c) => [c.name, c]))
 
-  for (const [name, oldConst] of oldMap) {
+  for (const name of oldMap.keys()) {
     if (!newMap.has(name)) {
       ops.push({ type: 'remove', path: `constituents.${name}` })
     }
   }
 
   for (const [name, newConst] of newMap) {
-    const oldConst = oldMap.get(name)
-    if (!oldConst) {
+    const priorConst = oldMap.get(name)
+    if (!priorConst) {
       ops.push({ type: 'add', path: `constituents.${name}`, value: newConst })
       continue
     }
 
-    const amplitudeDiff = Math.abs(oldConst.amplitude - newConst.amplitude) > 1e-6
-    const phaseDiff = Math.abs(oldConst.phase - newConst.phase) > 1e-6
+    const amplitudeDiff = Math.abs(priorConst.amplitude - newConst.amplitude) > 1e-6
+    const phaseDiff = Math.abs(priorConst.phase - newConst.phase) > 1e-6
     const speedDiff =
-      Math.abs((oldConst.speedDegHr ?? 0) - (newConst.speedDegHr ?? 0)) > 1e-6
+      Math.abs((priorConst.speedDegHr ?? 0) - (newConst.speedDegHr ?? 0)) > 1e-6
 
     if (amplitudeDiff || phaseDiff || speedDiff) {
       ops.push({ type: 'replace', path: `constituents.${name}`, value: newConst })

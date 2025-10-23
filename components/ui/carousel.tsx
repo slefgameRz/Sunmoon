@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 type CarouselOptions = NonNullable<Parameters<typeof useEmblaCarousel>[0]>
 type CarouselPlugin = NonNullable<Parameters<typeof useEmblaCarousel>[1]>
 type CarouselApi = UseEmblaCarouselType[1]
-type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
 type CarouselProps = {
   opts?: CarouselOptions
   plugins?: CarouselPlugin

@@ -6,7 +6,7 @@
 
 'use client'
 
-import React, { useMemo } from 'react'
+import React from 'react'
 
 export interface FieldTestingDashboardProps {
   totalMeasurements: number

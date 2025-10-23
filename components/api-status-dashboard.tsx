@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import {
   Activity,
   Wifi,
-  WifiOff,
   Server,
   Cloud,
   Zap,
@@ -14,7 +14,6 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Database,
   Globe,
   Waves
 } from 'lucide-react'
@@ -231,12 +230,7 @@ export default function ApiStatusDashboard({
                   {systemHealth.cpu.toFixed(1)}%
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400">CPU Usage</div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                  <div
-                    className={`bg-blue-600 h-2 rounded-full transition-all duration-300`}
-                    style={{ width: `${systemHealth.cpu}%` }}
-                  />
-                </div>
+                <Progress value={systemHealth.cpu} className="mt-2 h-2 bg-gray-200 dark:bg-gray-700" />
               </div>
 
               <div className="text-center">
@@ -244,12 +238,7 @@ export default function ApiStatusDashboard({
                   {systemHealth.memory.toFixed(1)}%
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400">Memory</div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                  <div
-                    className={`bg-green-600 h-2 rounded-full transition-all duration-300`}
-                    style={{ width: `${systemHealth.memory}%` }}
-                  />
-                </div>
+                <Progress value={systemHealth.memory} className="mt-2 h-2 bg-gray-200 dark:bg-gray-700" />
               </div>
 
               <div className="text-center">

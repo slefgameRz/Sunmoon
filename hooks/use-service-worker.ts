@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 
+const SERVICE_WORKER_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SERVICE_WORKER === 'true'
+
 interface ServiceWorkerState {
   isSupported: boolean
   isInstalled: boolean
@@ -18,32 +20,32 @@ export function useServiceWorker() {
     isOnline: true,
     needsUpdate: false,
     cacheSize: 0,
-    lastUpdate: null
+    lastUpdate: null,
   })
 
   useEffect(() => {
-    // Check if service workers are supported
+    if (!SERVICE_WORKER_ENABLED) {
+      console.info('[PWA] Service Worker disabled via NEXT_PUBLIC_ENABLE_SERVICE_WORKER')
+      return
+    }
+
     if (!('serviceWorker' in navigator)) {
       console.warn('[PWA] Service Workers not supported')
       return
     }
 
-    setState(prev => ({ ...prev, isSupported: true }))
+    setState((prev) => ({ ...prev, isSupported: true }))
 
-    // Register service worker
     registerServiceWorker()
 
-    // Monitor online/offline status
-    const handleOnline = () => setState(prev => ({ ...prev, isOnline: true }))
-    const handleOffline = () => setState(prev => ({ ...prev, isOnline: false }))
+    const handleOnline = () => setState((prev) => ({ ...prev, isOnline: true }))
+    const handleOffline = () => setState((prev) => ({ ...prev, isOnline: false }))
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    // Check initial online status
-    setState(prev => ({ ...prev, isOnline: navigator.onLine }))
+    setState((prev) => ({ ...prev, isOnline: navigator.onLine }))
 
-    // Get cache size
     getCacheSize()
 
     return () => {
@@ -53,14 +55,17 @@ export function useServiceWorker() {
   }, [])
 
   const registerServiceWorker = async () => {
+    if (!SERVICE_WORKER_ENABLED) return
+    if (!('serviceWorker' in navigator)) return
+
     try {
       const registration = await navigator.serviceWorker.register('/sw.js', {
         scope: '/',
-        updateViaCache: 'none' // Always check for updates
+        updateViaCache: 'none', // Always check for updates
       })
 
       console.log('[PWA] Service Worker registered:', registration.scope)
-      setState(prev => ({ ...prev, isInstalled: true }))
+      setState((prev) => ({ ...prev, isInstalled: true }))
 
       // Check for updates every 1 hour
       setInterval(() => {
@@ -76,7 +81,7 @@ export function useServiceWorker() {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('[PWA] New service worker installed, update available')
-              setState(prev => ({ ...prev, needsUpdate: true }))
+              setState((prev) => ({ ...prev, needsUpdate: true }))
             }
           })
         }
@@ -84,7 +89,7 @@ export function useServiceWorker() {
 
       // Get last update time
       if (registration.active) {
-        setState(prev => ({ ...prev, lastUpdate: new Date() }))
+        setState((prev) => ({ ...prev, lastUpdate: new Date() }))
       }
     } catch (error) {
       console.error('[PWA] Service Worker registration failed:', error)
@@ -92,13 +97,14 @@ export function useServiceWorker() {
   }
 
   const getCacheSize = async () => {
+    if (!SERVICE_WORKER_ENABLED) return
     if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
       return
     }
 
     try {
       const messageChannel = new MessageChannel()
-      
+
       const sizePromise = new Promise<number>((resolve) => {
         messageChannel.port1.onmessage = (event) => {
           resolve(event.data.size || 0)
@@ -107,17 +113,18 @@ export function useServiceWorker() {
 
       navigator.serviceWorker.controller.postMessage(
         { type: 'GET_CACHE_SIZE' },
-        [messageChannel.port2]
+        [messageChannel.port2],
       )
 
       const size = await sizePromise
-      setState(prev => ({ ...prev, cacheSize: size }))
+      setState((prev) => ({ ...prev, cacheSize: size }))
     } catch (error) {
       console.error('[PWA] Failed to get cache size:', error)
     }
   }
 
   const updateServiceWorker = async () => {
+    if (!SERVICE_WORKER_ENABLED) return
     if (!('serviceWorker' in navigator)) return
 
     try {
@@ -125,7 +132,7 @@ export function useServiceWorker() {
       if (registration?.waiting) {
         // Send message to skip waiting
         registration.waiting.postMessage({ type: 'SKIP_WAITING' })
-        
+
         // Reload page when new SW takes control
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           window.location.reload()
@@ -137,13 +144,14 @@ export function useServiceWorker() {
   }
 
   const clearCache = async () => {
+    if (!SERVICE_WORKER_ENABLED) return false
     if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
       return false
     }
 
     try {
       const messageChannel = new MessageChannel()
-      
+
       const clearPromise = new Promise<boolean>((resolve) => {
         messageChannel.port1.onmessage = (event) => {
           resolve(event.data.success || false)
@@ -152,12 +160,12 @@ export function useServiceWorker() {
 
       navigator.serviceWorker.controller.postMessage(
         { type: 'CLEAR_CACHE' },
-        [messageChannel.port2]
+        [messageChannel.port2],
       )
 
       const success = await clearPromise
       if (success) {
-        setState(prev => ({ ...prev, cacheSize: 0 }))
+        setState((prev) => ({ ...prev, cacheSize: 0 }))
       }
       return success
     } catch (error) {
@@ -167,6 +175,7 @@ export function useServiceWorker() {
   }
 
   const requestPersistentStorage = async () => {
+    if (!SERVICE_WORKER_ENABLED) return false
     if (!('storage' in navigator) || !('persist' in navigator.storage)) {
       return false
     }
@@ -182,6 +191,7 @@ export function useServiceWorker() {
   }
 
   const getStorageEstimate = async () => {
+    if (!SERVICE_WORKER_ENABLED) return null
     if (!('storage' in navigator) || !('estimate' in navigator.storage)) {
       return null
     }
@@ -191,7 +201,7 @@ export function useServiceWorker() {
       return {
         usage: estimate.usage || 0,
         quota: estimate.quota || 0,
-        percentUsed: estimate.quota ? ((estimate.usage || 0) / estimate.quota) * 100 : 0
+        percentUsed: estimate.quota ? ((estimate.usage || 0) / estimate.quota) * 100 : 0,
       }
     } catch (error) {
       console.error('[PWA] Failed to get storage estimate:', error)
@@ -205,7 +215,7 @@ export function useServiceWorker() {
     clearCache,
     requestPersistentStorage,
     getStorageEstimate,
-    refreshCacheSize: getCacheSize
+    refreshCacheSize: getCacheSize,
   }
 }
 

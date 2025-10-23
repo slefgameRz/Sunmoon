@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer'
 import { NextRequest, NextResponse } from 'next/server'
 import { createTilePackage } from '@/lib/tile-packaging'
-import { TIDAL_CONSTITUENTS, getLocationConstituents } from '@/lib/harmonic-prediction'
+import { getLocationConstituents } from '@/lib/harmonic-prediction'
 
 /**
  * API endpoint for tile data

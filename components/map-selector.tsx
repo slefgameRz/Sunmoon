@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { Map as PigeonMap, Marker } from "pigeon-maps"
-import { Loader2, MapPin, Search, Crosshair } from "lucide-react"
+import { Loader2, Search, Crosshair } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type { LocationData } from "@/lib/tide-service"
@@ -46,7 +46,8 @@ export default function MapSelector({ isOpen, currentLocation, onSelectLocationA
       } else {
         setError("ไม่พบสถานที่")
       }
-    } catch (e) {
+    } catch (error) {
+      console.error("Map search failed", error)
       setError("เกิดข้อผิดพลาด")
     } finally {
       setLoading(false)

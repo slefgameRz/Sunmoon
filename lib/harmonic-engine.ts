@@ -30,7 +30,6 @@ export interface HarmonicPredictionResult {
  * Determine region based on location
  */
 function getRegion(location: LocationData): 'gulfOfThailand' | 'andamanSea' {
-  const isGulf = location.lon > 99 && location.lat < 15 && location.lat > 5
   const isAndaman = location.lon < 99 && location.lat < 15 && location.lat > 5
 
   return isAndaman ? 'andamanSea' : 'gulfOfThailand'
@@ -346,13 +345,20 @@ export function printConstituentSummary(): void {
 
 // Log on module load
 if (typeof window !== 'undefined') {
-  // Client-side only
-  ;(window as any).printTideConstituents = printConstituentSummary
+  window.printTideConstituents = printConstituentSummary
 }
 
-export default {
+declare global {
+  interface Window {
+    printTideConstituents?: typeof printConstituentSummary
+  }
+}
+
+const harmonicEngine = {
   predictTideLevel,
   findTideExtremes,
   generateGraphData,
   printConstituentSummary,
 }
+
+export default harmonicEngine

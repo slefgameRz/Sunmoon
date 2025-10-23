@@ -51,7 +51,7 @@ const SidebarProvider = React.forwardRef<
     open?: boolean
     onOpenChange?: (open: boolean) => void
   }
->(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
+>(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, children, ...props }, ref) => {
   const isMobile = useMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
@@ -136,8 +136,7 @@ const Sidebar = React.forwardRef<
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
     variant?: "sidebar" | "floating" | "inset"
-    collapsible?: "offcanvas" | "icon" | "none"
-    isCollapsed?: boolean
+  collapsible?: "offcanvas" | "icon" | "none"
     items?: {
       href: string
       title: string
@@ -149,8 +148,7 @@ const Sidebar = React.forwardRef<
     {
       side = "left",
       variant = "sidebar",
-      collapsible = "offcanvas",
-      isCollapsed = false,
+  collapsible = "offcanvas",
       className,
       items,
       children,

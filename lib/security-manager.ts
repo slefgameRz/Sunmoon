@@ -182,7 +182,7 @@ class SecurityManager {
       }
 
       return { valid: true, userId: decoded.userId }
-    } catch (error) {
+    } catch {
       return { valid: false, error: 'Invalid token' }
     }
   }

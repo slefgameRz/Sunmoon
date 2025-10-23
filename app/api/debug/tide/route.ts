@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
 
     const tide = await getTideData({ lat, lon, name: 'debug' }, date, time)
     return NextResponse.json(tide)
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

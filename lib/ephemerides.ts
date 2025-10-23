@@ -96,10 +96,6 @@ const LEAP_SECONDS: Array<{ effective: string; offset: number }> = [
 
 const DEG2RAD = Math.PI / 180
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max)
-}
-
 export function getEphemeridesMetadata(): EphemeridesMetadata {
   return { ...METADATA }
 }

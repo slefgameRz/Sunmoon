@@ -65,6 +65,37 @@ interface TileRecord {
   payload: ArrayBuffer
 }
 
+type ArrayBufferLikeInput = Uint8Array | ArrayBuffer | SharedArrayBuffer
+
+function isSharedArrayBuffer(value: unknown): value is SharedArrayBuffer {
+  return typeof SharedArrayBuffer !== 'undefined' && value instanceof SharedArrayBuffer
+}
+
+function cloneSharedArrayBuffer(buffer: SharedArrayBuffer): ArrayBuffer {
+  const view = new Uint8Array(buffer)
+  const copy = new Uint8Array(view.length)
+  copy.set(view)
+  return copy.buffer
+}
+
+function toArrayBuffer(input: ArrayBufferLikeInput): ArrayBuffer {
+  if (input instanceof Uint8Array) {
+    const copy = new Uint8Array(input.byteLength)
+    copy.set(input)
+    return copy.buffer
+  }
+
+  if (isSharedArrayBuffer(input)) {
+    return cloneSharedArrayBuffer(input)
+  }
+
+  if (input instanceof ArrayBuffer) {
+    return input
+  }
+
+  throw new TypeError('Unsupported buffer type')
+}
+
 class TileStorageManager {
   private db: IDBDatabase | null = null
   private initialized = false
@@ -110,7 +141,7 @@ class TileStorageManager {
   /**
    * Save a tile to storage
    */
-  async saveTilePackage(tile: TileData, payload: Uint8Array | ArrayBuffer): Promise<void> {
+  async saveTilePackage(tile: TileData, payload: ArrayBufferLikeInput): Promise<void> {
     await this.init()
     if (!this.db) throw new Error('Database not initialized')
 
@@ -127,16 +158,7 @@ class TileStorageManager {
       const store = transaction.objectStore(TILES_STORE)
       
       // Fix ArrayBuffer handling - ensure only ArrayBuffer, not SharedArrayBuffer
-      let buffer: ArrayBuffer
-      if (payload instanceof Uint8Array) {
-        buffer = payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength) as ArrayBuffer
-      } else if (typeof SharedArrayBuffer !== 'undefined' && payload instanceof SharedArrayBuffer) {
-        // Convert SharedArrayBuffer to regular ArrayBuffer
-        buffer = new ArrayBuffer((payload as any).byteLength)
-        new Uint8Array(buffer).set(new Uint8Array(payload as any))
-      } else {
-        buffer = payload as ArrayBuffer
-      }
+      const buffer = toArrayBuffer(payload)
       
       const record: TileRecord = {
         tileId: tile.tileId,
@@ -162,7 +184,7 @@ class TileStorageManager {
     return record?.metadata ?? null
   }
 
-  async savePackage(pkg: { tile: TileData; payload: Uint8Array | ArrayBuffer }): Promise<void> {
+  async savePackage(pkg: { tile: TileData; payload: ArrayBufferLikeInput }): Promise<void> {
     return this.saveTilePackage(pkg.tile, pkg.payload)
   }
 
@@ -432,28 +454,20 @@ export function calculateCompressionRatio(original: number, compressed: number):
   return ((original - compressed) / original) * 100
 }
 
-async function digestSHA256(data: Uint8Array | ArrayBuffer): Promise<string> {
-  let buffer: ArrayBuffer
-  if (data instanceof Uint8Array) {
-    buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer
-  } else if (typeof SharedArrayBuffer !== 'undefined' && (data as any) instanceof SharedArrayBuffer) {
-    // Convert SharedArrayBuffer to regular ArrayBuffer
-    buffer = new ArrayBuffer((data as any).byteLength)
-    new Uint8Array(buffer).set(new Uint8Array(data as any))
-  } else {
-    buffer = data as ArrayBuffer
-  }
-  
+async function digestSHA256(data: Uint8Array | ArrayBuffer | SharedArrayBuffer): Promise<string> {
+  const buffer = toArrayBuffer(data)
+
   const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   return hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 function decodeBase64(base64: string): Uint8Array {
-  const globalBuffer = (globalThis as any).Buffer
-  if (globalBuffer?.from) {
-    const buf: Uint8Array = globalBuffer.from(base64, 'base64')
-    return Uint8Array.from(buf)
+  const globalWithBuffer = globalThis as { Buffer?: { from(input: string, encoding: string): { length: number; [index: number]: number } } }
+  const nodeBuffer = globalWithBuffer.Buffer
+  if (nodeBuffer?.from) {
+    const buf = nodeBuffer.from(base64, 'base64')
+    return Uint8Array.from({ length: buf.length }, (_, index) => buf[index])
   }
 
   const binary = atob(base64)

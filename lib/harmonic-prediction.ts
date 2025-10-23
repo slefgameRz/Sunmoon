@@ -729,7 +729,7 @@ function calculateConstituentArgument(
   constituent: TidalConstituent,
   args: AstronomicalArguments
 ): number {
-  const { s, h, p, N, pp, tau } = args
+  const { s, h, p, tau } = args
   const name = constituent.name
   
   // V = speed * tau + phase offset based on astronomical arguments

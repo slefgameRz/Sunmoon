@@ -51,9 +51,9 @@ export const WaterLevelGraph: React.FC<WaterLevelGraphProps> = ({ tideData }) =>
     return Math.max(5, ((level - minLevel) / levelRange) * 100)
   }
 
-  const getBarColor = (data: any, index: number) => {
+  const getBarColor = (data: TideData['graphData'][number]) => {
     const currentHour = new Date().getHours()
-    const dataHour = parseInt(data.time.split(':')[0])
+    const dataHour = Number.parseInt(data.time.split(':')[0], 10)
     
     if (dataHour === currentHour) {
       return data.prediction 
@@ -145,7 +145,7 @@ export const WaterLevelGraph: React.FC<WaterLevelGraphProps> = ({ tideData }) =>
                       <div 
                         className={cn(
                           "w-full mx-0.5 rounded-t-sm transition-all duration-300 hover:scale-110",
-                          getBarColor(data, index)
+                          getBarColor(data)
                         )}
                         style={{ height: `${height}%` }}
                       />

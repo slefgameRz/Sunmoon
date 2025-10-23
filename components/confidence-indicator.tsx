@@ -54,7 +54,6 @@ export function calculateConfidence(
 
   // Boost if historical accuracy is available
   if (lastAccuracy) {
-    const accuracyBoost = lastAccuracy / 100
     score = score * 0.7 + lastAccuracy * 0.3 // 70/30 weighting
   }
 

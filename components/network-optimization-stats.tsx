@@ -15,7 +15,7 @@ import {
   Network,
   Smartphone
 } from 'lucide-react'
-import { detectNetworkQuality, formatDataSize, calculateDataSavings, getBatteryOptimizationSettings } from '@/lib/network-optimization'
+import { detectNetworkQuality, formatDataSize, calculateDataSavings } from '@/lib/network-optimization'
 import { cn } from '@/lib/utils'
 
 interface NetworkOptimizationStatsProps {

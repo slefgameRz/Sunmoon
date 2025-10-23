@@ -170,7 +170,7 @@ export class TileManager {
 
     // Download from server (Phase 2 implementation)
     try {
-      const tileData = await this.downloadTile(tileId, lat, lon)
+      const tileData = await this.downloadTile(tileId)
       if (tileData) {
         await this.cacheTile(tileId, tileData)
         return tileData
@@ -186,7 +186,7 @@ export class TileManager {
   /**
    * Download tile from server
    */
-  private async downloadTile(tileId: string, lat: number, lon: number): Promise<TileData | null> {
+  private async downloadTile(tileId: string): Promise<TileData | null> {
     try {
       const url = `/api/tiles/${tileId}`
       const response = await fetch(url, {
@@ -282,8 +282,7 @@ export class TileManager {
     const tileId = this.generateTileId(lat, lon)
 
     // Determine region type
-    const isGulf = lon > 99 && lat < 15 && lat > 5
-    const regionType = isGulf ? 'gulf' : 'andaman'
+  const isGulf = lon > 99 && lat < 15 && lat > 5
 
     // Generate constituent data for this region
     const constituents: ConstituentData[] = [
@@ -310,7 +309,7 @@ export class TileManager {
         dataSignature: '', // Will be set during release phase
       },
       constituents,
-      minorRules: {
+        minorRules: {
         diurnalInequality: isGulf ? 0.3 : 0.1,
         mixedPattern: isGulf,
       },

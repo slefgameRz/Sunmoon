@@ -2,6 +2,14 @@
  * Data compression and optimization utilities for SEAPALO
  * Reduces payload size while maintaining accuracy for emergency communications
  */
+import type {
+  ApiStatus,
+  LocationData,
+  TideData,
+  TideEvent,
+  WaterLevelGraphData,
+  WeatherData,
+} from './tide-service'
 
 export interface CompressedTideData {
   v: number // version
@@ -38,18 +46,55 @@ export interface CompressedLocationData {
   name: string // location name
 }
 
+type TideDataSnapshot = Pick<
+  TideData,
+  | 'currentWaterLevel'
+  | 'highTideTime'
+  | 'lowTideTime'
+  | 'tideEvents'
+  | 'lunarPhaseKham'
+  | 'tideStatus'
+  | 'isWaxingMoon'
+  | 'graphData'
+  | 'apiStatus'
+  | 'lastUpdated'
+>
+
+type WeatherDataSnapshot = WeatherData
+
+type LocationDataSnapshot = LocationData
+
+export type EmergencyPacketPayload = {
+  emergency: 'flood' | 'storm' | 'tsunami' | 'general'
+  timestamp: number
+  tide: CompressedTideData
+  weather: CompressedWeatherData
+  location: CompressedLocationData
+}
+
+export type EmergencyPacket = {
+  compressed: {
+    tide: CompressedTideData
+    weather: CompressedWeatherData
+    location: CompressedLocationData
+  }
+  analog: AnalogSignal[]
+  checksum: string
+  payload: EmergencyPacketPayload
+}
+
 /**
  * Compress tide data for transmission
  */
-export function compressTideData(data: any): CompressedTideData {
+export function compressTideData(data: TideDataSnapshot): CompressedTideData {
   return {
     v: 1, // version
     t: Math.floor(Date.now() / 1000), // timestamp in seconds
     l: Math.round(data.currentWaterLevel * 100), // compress to 2 decimal places
     h: timeToMinutes(data.highTideTime),
     o: timeToMinutes(data.lowTideTime),
-    H: Math.round((data.tideEvents?.find((e: any) => e.type === "high")?.level || 0) * 100),
-    O: Math.round((data.tideEvents?.find((e: any) => e.type === "low")?.level || 0) * 100),
+    H: Math.round((data.tideEvents?.find((event) => event.type === 'high')?.level ?? 0) * 100),
+    O: Math.round((data.tideEvents?.find((event) => event.type === 'low')?.level ?? 0) * 100),
     p: Math.round(data.lunarPhaseKham),
     s: data.tideStatus === "น้ำเป็น" ? 0 : 1,
     w: data.isWaxingMoon ? 1 : 0,
@@ -62,25 +107,27 @@ export function compressTideData(data: any): CompressedTideData {
 /**
  * Decompress tide data
  */
-export function decompressTideData(data: CompressedTideData): any {
+export function decompressTideData(data: CompressedTideData): TideDataSnapshot {
+  const apiStatus: ApiStatus = data.a === 0 ? 'success' : data.a === 1 ? 'error' : 'loading'
+
   return {
     currentWaterLevel: data.l / 100,
     highTideTime: minutesToTime(data.h),
     lowTideTime: minutesToTime(data.o),
     tideEvents: decompressTideEvents(data.e),
     lunarPhaseKham: data.p,
-    tideStatus: data.s === 0 ? "น้ำเป็น" : "น้ำตาย",
+    tideStatus: data.s === 0 ? 'น้ำเป็น' : 'น้ำตาย',
     isWaxingMoon: data.w === 1,
     graphData: decompressGraphData(data.g),
-    apiStatus: data.a === 0 ? "success" : data.a === 1 ? "error" : "loading",
-    lastUpdated: new Date(data.t * 1000).toISOString()
+    apiStatus,
+    lastUpdated: new Date(data.t * 1000).toISOString(),
   }
 }
 
 /**
  * Compress weather data
  */
-export function compressWeatherData(data: any): CompressedWeatherData {
+export function compressWeatherData(data: WeatherDataSnapshot): CompressedWeatherData {
   return {
     v: 1,
     t: Math.floor(Date.now() / 1000),
@@ -98,7 +145,7 @@ export function compressWeatherData(data: any): CompressedWeatherData {
 /**
  * Decompress weather data
  */
-export function decompressWeatherData(data: CompressedWeatherData): any {
+export function decompressWeatherData(data: CompressedWeatherData): WeatherDataSnapshot {
   return {
     main: {
       temp: data.temp / 10,
@@ -113,14 +160,15 @@ export function decompressWeatherData(data: CompressedWeatherData): any {
     weather: [{
       description: data.desc,
       icon: data.icon
-    }]
+    }],
+    name: ''
   }
 }
 
 /**
  * Compress location data
  */
-export function compressLocationData(data: any): CompressedLocationData {
+export function compressLocationData(data: LocationDataSnapshot): CompressedLocationData {
   return {
     lat: Math.round(data.lat * 1000000), // compress to 6 decimal places
     lon: Math.round(data.lon * 1000000),
@@ -131,7 +179,7 @@ export function compressLocationData(data: any): CompressedLocationData {
 /**
  * Decompress location data
  */
-export function decompressLocationData(data: CompressedLocationData): any {
+export function decompressLocationData(data: CompressedLocationData): LocationDataSnapshot {
   return {
     lat: data.lat / 1000000,
     lon: data.lon / 1000000,
@@ -161,8 +209,8 @@ function minutesToTime(minutes: number): string {
 /**
  * Compress tide events array
  */
-function compressTideEvents(events: any[]): number[] {
-  return events.flatMap(event => [
+function compressTideEvents(events: TideEvent[]): number[] {
+  return events.flatMap((event) => [
     timeToMinutes(event.time),
     Math.round(event.level * 100),
     event.type === "high" ? 1 : 0
@@ -172,8 +220,8 @@ function compressTideEvents(events: any[]): number[] {
 /**
  * Decompress tide events array
  */
-function decompressTideEvents(compressed: number[]): any[] {
-  const events = []
+function decompressTideEvents(compressed: number[]): TideEvent[] {
+  const events: TideEvent[] = []
   for (let i = 0; i < compressed.length; i += 3) {
     events.push({
       time: minutesToTime(compressed[i]),
@@ -187,7 +235,7 @@ function decompressTideEvents(compressed: number[]): any[] {
 /**
  * Compress graph data (reduce precision for transmission)
  */
-function compressGraphData(data: any[]): number[] {
+function compressGraphData(data: WaterLevelGraphData[]): number[] {
   // Sample every 10th point and compress values
   return data
     .filter((_, index) => index % 10 === 0)
@@ -200,8 +248,8 @@ function compressGraphData(data: any[]): number[] {
 /**
  * Decompress graph data (interpolate missing points)
  */
-function decompressGraphData(compressed: number[]): any[] {
-  const data = []
+function decompressGraphData(compressed: number[]): WaterLevelGraphData[] {
+  const data: WaterLevelGraphData[] = []
   for (let i = 0; i < compressed.length; i += 2) {
     data.push({
       time: minutesToTime(compressed[i]),
@@ -215,7 +263,7 @@ function decompressGraphData(compressed: number[]): any[] {
 /**
  * Calculate compression ratio
  */
-export function calculateCompressionRatio(original: any, compressed: any): number {
+export function calculateCompressionRatio(original: unknown, compressed: unknown): number {
   const originalSize = JSON.stringify(original).length
   const compressedSize = JSON.stringify(compressed).length
   return ((originalSize - compressedSize) / originalSize) * 100
@@ -301,24 +349,16 @@ function charToMorsePattern(char: string): number[] {
  * Emergency broadcast system - create emergency data packet
  */
 export function createEmergencyPacket(
-  tideData: any,
-  weatherData: any,
-  locationData: any,
+  tideData: TideDataSnapshot,
+  weatherData: WeatherDataSnapshot,
+  locationData: LocationDataSnapshot,
   emergencyType: 'flood' | 'storm' | 'tsunami' | 'general'
-): {
-  compressed: {
-    tide: CompressedTideData
-    weather: CompressedWeatherData
-    location: CompressedLocationData
-  }
-  analog: AnalogSignal[]
-  checksum: string
-} {
+): EmergencyPacket {
   const compressedTide = compressTideData(tideData)
   const compressedWeather = compressWeatherData(weatherData)
   const compressedLocation = compressLocationData(locationData)
 
-  const packetData = {
+  const packetData: EmergencyPacketPayload = {
     emergency: emergencyType,
     timestamp: Date.now(),
     tide: compressedTide,
@@ -336,7 +376,8 @@ export function createEmergencyPacket(
       location: compressedLocation
     },
     analog: dataToAnalogSignals(compressedTide), // Use tide data as primary signal
-    checksum
+    checksum,
+    payload: packetData,
   }
 }
 

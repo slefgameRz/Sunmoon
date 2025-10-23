@@ -50,8 +50,6 @@ export class TidePredictionAPI {
     confidence: number
     dataSource: string
   }> {
-    const startTime = performance.now()
-
     try {
       // Try to load tile first
       const tile = await tileManager.loadTile(location.lat, location.lon)
@@ -160,7 +158,7 @@ export class TidePredictionAPI {
           }))
       }
 
-      const responseTime = performance.now() - startTime
+  const responseTime = performance.now() - startTime
       this.totalResponseTime += responseTime
 
       return {

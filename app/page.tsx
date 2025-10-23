@@ -1,4 +1,7 @@
-﻿import EnhancedLocationSelector from "../components/enhanced-location-selector"
+import EnhancedLocationSelector from "../components/enhanced-location-selector";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default function Home() {
   return (
@@ -24,14 +27,9 @@ export default function Home() {
             <div className="text-4xl md:text-5xl">🌙</div>
           </div>
           <p className="text-sm md:text-base lg:text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto px-4 font-medium">
-            ศรีพโล • พยากรณ์น้ำขึ้นน้ำลงและสภาพอากาศแบบเรียลไทม์สำหรับพื้นที่ชายฝั่งไทย
+            ศรีพโล •
+            พยากรณ์น้ำขึ้นน้ำลงและสภาพอากาศแบบเรียลไทม์สำหรับพื้นที่ชายฝั่งไทย
           </p>
-          <div className="mt-3 text-xs md:text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium">
-              <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></span>
-              ข้อมูลสดใหม่
-            </span>
-          </div>
         </div>
       </header>
 
@@ -47,5 +45,5 @@ export default function Home() {
         </div>
       </section>
     </main>
-  )
+  );
 }

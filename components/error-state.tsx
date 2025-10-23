@@ -1,9 +1,9 @@
 "use client"
 
 import React from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, RefreshCw, MapPin, Wifi, WifiOff } from "lucide-react"
+import { AlertCircle, RefreshCw, MapPin, WifiOff } from "lucide-react"
 
 interface ErrorStateProps {
   title?: string

@@ -7,7 +7,6 @@ import type {
   PredictionOptions,
   PredictionResult,
   TileManifest,
-  TileMeta,
   TilePayload,
 } from "./types"
 import { decompressToString } from "@/lib/tile-packaging"

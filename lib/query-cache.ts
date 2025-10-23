@@ -5,11 +5,18 @@
  * with smart invalidation and prefetching
  */
 
-export interface CachedPrediction {
+export interface CacheablePrediction {
+  time: Date | string
+  level: number
+  type?: 'high' | 'low'
+  confidence?: number
+}
+
+export interface CachedPrediction<TPrediction extends CacheablePrediction = CacheablePrediction> {
   key: string
   location: { lat: number; lon: number; name: string }
   date: string
-  predictions: any[]
+  predictions: TPrediction[]
   timestamp: number
   ttl: number // milliseconds
   hitCount: number
@@ -26,8 +33,8 @@ export interface CacheStats {
 /**
  * Smart query cache for predictions
  */
-class PredictionQueryCache {
-  private cache = new Map<string, CachedPrediction>()
+class PredictionQueryCache<TPrediction extends CacheablePrediction = CacheablePrediction> {
+  private cache = new Map<string, CachedPrediction<TPrediction>>()
   private readonly maxCacheSize = 100
   private totalHits = 0
   private totalMisses = 0
@@ -54,7 +61,7 @@ class PredictionQueryCache {
     lon: number,
     date: string
   ): {
-    predictions: any[]
+    predictions: TPrediction[]
     hitCount: number
   } | null {
     const key = this.generateKey(lat, lon, date)
@@ -89,7 +96,7 @@ class PredictionQueryCache {
     lat: number,
     lon: number,
     date: string,
-    predictions: any[],
+    predictions: TPrediction[],
     ttlMinutes: number = 60
   ): void {
     const key = this.generateKey(lat, lon, date)
@@ -192,6 +199,6 @@ class PredictionQueryCache {
 }
 
 // Singleton instance
-export const predictionQueryCache = new PredictionQueryCache()
+export const predictionQueryCache = new PredictionQueryCache<CacheablePrediction>()
 
 export default predictionQueryCache

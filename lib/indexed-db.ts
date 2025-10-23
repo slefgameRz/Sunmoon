@@ -9,9 +9,17 @@ const TILE_STORE = 'tiles'
 const MAX_TILES = 100 // Maximum number of tiles to store
 const MAX_STORAGE_MB = 50 // Maximum storage in MB
 
-export interface TileData {
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue }
+
+export interface TileData<TPayload = Uint8Array> {
   id: string // Unique tile identifier (lat-lon-zoom)
-  data: any // Tile data (compressed)
+  data: TPayload // Tile data (compressed)
   timestamp: number // When tile was cached
   accessCount: number // Number of times accessed
   lastAccessed: number // Last access timestamp
@@ -294,7 +302,7 @@ class IndexedDBManager {
   /**
    * Compress data before storing
    */
-  async compressData(data: any): Promise<Uint8Array> {
+  async compressData<TData extends JsonValue>(data: TData): Promise<Uint8Array> {
     const json = JSON.stringify(data)
     const encoder = new TextEncoder()
     const input = encoder.encode(json)
@@ -314,7 +322,7 @@ class IndexedDBManager {
   /**
    * Decompress data after retrieving
    */
-  async decompressData(compressed: Uint8Array): Promise<any> {
+  async decompressData<TData extends JsonValue>(compressed: Uint8Array): Promise<TData> {
     // Use DecompressionStream if available
     if ('DecompressionStream' in window) {
       try {
@@ -328,7 +336,8 @@ class IndexedDBManager {
         const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'))
         const decompressedBlob = await new Response(decompressedStream).blob()
         const text = await decompressedBlob.text()
-        return JSON.parse(text)
+        const parsed = JSON.parse(text) as JsonValue
+        return parsed as TData
       } catch (error) {
         console.error('[IndexedDB] Decompression failed, trying as uncompressed:', error)
       }
@@ -337,7 +346,8 @@ class IndexedDBManager {
     // Fallback: treat as uncompressed
     const decoder = new TextDecoder()
     const text = decoder.decode(compressed)
-    return JSON.parse(text)
+    const parsed = JSON.parse(text) as JsonValue
+    return parsed as TData
   }
 }
 

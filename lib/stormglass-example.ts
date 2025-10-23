@@ -6,8 +6,24 @@
  * 3. คัดลอก API Key ใส่ในไฟล์ .env.local
  */
 
+interface StormglassExtreme {
+  height: number
+  time: string
+  type: string
+}
+
+interface StormglassApiResponse {
+  data?: StormglassExtreme[]
+}
+
+interface TideExtreme {
+  time: string
+  level: number
+  type: string
+}
+
 // ตัวอย่างการเรียกใช้ Stormglass API
-export async function getStormglassTideData(lat: number, lon: number, date: string) {
+export async function getStormglassTideData(lat: number, lon: number, date: string): Promise<TideExtreme[] | null> {
   const STORMGLASS_API_KEY = process.env.STORMGLASS_API_KEY
   
   if (!STORMGLASS_API_KEY) {
@@ -28,14 +44,19 @@ export async function getStormglassTideData(lat: number, lon: number, date: stri
       throw new Error(`HTTP error! status: ${response.status}`)
     }
 
-    const data = await response.json()
-    
-    // แปลงข้อมูลเป็นรูปแบบที่แอปใช้
-    return data.data?.map((item: any) => ({
-      time: new Date(item.time).toISOString().substring(11, 16), // 'HH:mm' format for SSR/CSR consistency
-      level: parseFloat(item.height.toFixed(2)),
-      type: item.type // 'high' or 'low'
-    })) || []
+    const data = (await response.json()) as StormglassApiResponse
+
+    const extremes = data.data ?? []
+
+    return extremes
+      .filter((item): item is StormglassExtreme =>
+        typeof item.height === 'number' && typeof item.time === 'string' && typeof item.type === 'string'
+      )
+      .map(item => ({
+        time: new Date(item.time).toISOString().substring(11, 16), // 'HH:mm' format for SSR/CSR consistency
+        level: Number.parseFloat(item.height.toFixed(2)),
+        type: item.type
+      }))
     
   } catch (error) {
     console.error('Stormglass API Error:', error)
@@ -84,8 +105,10 @@ export const STORMGLASS_INFO = {
   }
 }
 
-export default {
+const stormglassExample = {
   getStormglassTideData,
   exampleUsage,
   STORMGLASS_INFO
 }
+
+export default stormglassExample

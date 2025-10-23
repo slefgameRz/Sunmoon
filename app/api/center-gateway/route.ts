@@ -34,7 +34,8 @@ export async function POST(req: Request) {
     queue.push(frame)
     if (queue.length > 100) queue.shift()
     return NextResponse.json({ ok: 1 }, { status: 202 })
-  } catch (e) {
+  } catch (error) {
+    console.error("Center gateway payload error:", error)
     return NextResponse.json({ error: "invalid_json" }, { status: 400 })
   }
 }

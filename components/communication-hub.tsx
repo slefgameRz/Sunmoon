@@ -9,17 +9,15 @@ import {
   Radio,
   RadioIcon,
   AlertTriangle,
-  Zap,
   Wifi,
-  WifiOff,
   Send,
   Download,
-  Upload,
   Settings,
   Activity,
   Shield,
   Phone,
-  Satellite
+  Satellite,
+  Info
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -27,17 +25,47 @@ import {
   dataToAnalogSignals,
   analogSignalsToData,
   compressTideData,
-  compressWeatherData,
-  compressLocationData,
-  type AnalogSignal
+  type AnalogSignal,
+  type CompressedTideData,
+  type EmergencyPacket
 } from '@/lib/data-compression'
+import type { TideData, WeatherData, LocationData } from '@/lib/tide-service'
+
+function isCompressedTideData(value: unknown): value is CompressedTideData {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const record = value as Record<string, unknown>
+  return (
+    typeof record.v === 'number' &&
+    typeof record.t === 'number' &&
+    typeof record.l === 'number' &&
+    typeof record.h === 'number' &&
+    typeof record.o === 'number' &&
+    typeof record.H === 'number' &&
+    typeof record.O === 'number' &&
+    Array.isArray(record.e) &&
+    Array.isArray(record.g)
+  )
+}
+
+function parseCompressedTideData(raw: string): CompressedTideData | null {
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    return isCompressedTideData(parsed) ? parsed : null
+  } catch (error) {
+    console.error('Failed to parse compressed tide payload:', error)
+    return null
+  }
+}
 
 interface CommunicationHubProps {
-  tideData: any
-  weatherData: any
-  locationData: any
+  tideData: TideData
+  weatherData: WeatherData
+  locationData: LocationData
   emergencyAlert?: string | null
-  onEmergencyBroadcast?: (packet: any) => void
+  onEmergencyBroadcast?: (packet: EmergencyPacket) => void
   onEmergencyClear?: () => void
 }
 
@@ -56,18 +84,23 @@ export default function CommunicationHub({
   const [emergencyLevel, setEmergencyLevel] = useState<EmergencyLevel>('low')
   const [isTransmitting, setIsTransmitting] = useState(false)
   const [isReceiving, setIsReceiving] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'degraded'>('connected')
   const [lastTransmission, setLastTransmission] = useState<Date | null>(null)
-  const [receivedData, setReceivedData] = useState<any>(null)
+  const [receivedData, setReceivedData] = useState<CompressedTideData | null>(null)
   const [systemStatus, setSystemStatus] = useState<'normal' | 'warning' | 'emergency'>('normal')
 
   const audioContextRef = useRef<AudioContext | null>(null)
-  const oscillatorRef = useRef<OscillatorNode | null>(null)
+  const connectionStatus: 'connected' | 'disconnected' | 'degraded' = 'connected'
 
   // Initialize Web Audio API
   useEffect(() => {
     try {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const contextCtor = typeof window !== 'undefined'
+        ? window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        : undefined
+
+      if (contextCtor) {
+        audioContextRef.current = new contextCtor()
+      }
     } catch (error) {
       console.error('Web Audio API not supported:', error)
     }
@@ -139,9 +172,9 @@ export default function CommunicationHub({
       setLastTransmission(new Date())
       onEmergencyBroadcast?.(packet)
 
-      // Show success feedback
+      // Show success feedback (simulation)
       setTimeout(() => {
-        alert('ส่งข้อมูลฉุกเฉินทางดิจิทัลสำเร็จ')
+        alert('โหมดทดสอบ: จำลองการส่งข้อมูลฉุกเฉินทางดิจิทัลเรียบร้อย ยังไม่เชื่อมต่อระบบจริง')
       }, 1000)
 
     } catch (error) {
@@ -169,9 +202,9 @@ export default function CommunicationHub({
 
       setLastTransmission(new Date())
 
-      // Show success feedback
+      // Show success feedback (simulation)
       setTimeout(() => {
-        alert('ส่งสัญญาณอะนาล็อกสำเร็จ')
+        alert('โหมดทดสอบ: จำลองการส่งสัญญาณอะนาล็อกเรียบร้อย ยังไม่เชื่อมต่อระบบจริง')
       }, 1000)
 
     } catch (error) {
@@ -238,8 +271,10 @@ export default function CommunicationHub({
 
       try {
         const receivedJson = analogSignalsToData(mockSignals)
-        const parsedData = JSON.parse(receivedJson)
-        setReceivedData(parsedData)
+        const parsedData = parseCompressedTideData(receivedJson)
+        if (parsedData) {
+          setReceivedData(parsedData)
+        }
       } catch (error) {
         console.error('Failed to decode analog signals:', error)
       }
@@ -248,7 +283,7 @@ export default function CommunicationHub({
     }, 3000)
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: 'connected' | 'disconnected' | 'degraded') => {
     switch (status) {
       case 'connected':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
@@ -287,6 +322,13 @@ export default function CommunicationHub({
         </Alert>
       )}
 
+      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-900 dark:text-blue-200">
+          ฟีเจอร์นี้เป็นต้นแบบสำหรับทดสอบแนวทางการสื่อสารฉุกเฉิน ยังไม่เชื่อมต่อกับระบบวิทยุหรือหน่วยงานภายนอกจริง
+        </AlertDescription>
+      </Alert>
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
@@ -294,10 +336,10 @@ export default function CommunicationHub({
           </div>
           <div>
             <h3 id="comm-hub-heading" className="text-lg font-semibold text-gray-900 dark:text-white">
-              ศูนย์กลางการสื่อสารฉุกเฉิน
+              ศูนย์กลางการสื่อสารฉุกเฉิน (ต้นแบบ)
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              ระบบสื่อสารดิจิทัลและอะนาล็อกสำหรับสถานการณ์ฉุกเฉิน
+              จำลองขั้นตอนการส่งข้อมูลดิจิทัลและอะนาล็อกเพื่อการทดลอง ยังไม่เชื่อมต่อโครงข่ายจริง
             </p>
           </div>
         </div>

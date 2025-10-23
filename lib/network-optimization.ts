@@ -11,6 +11,15 @@ export interface NetworkQuality {
   recommendedCacheTimeout: number // milliseconds
 }
 
+type EffectiveConnectionType = 'slow-2g' | '2g' | '3g' | '4g'
+
+interface NavigatorConnection {
+  downlink?: number
+  effectiveType?: EffectiveConnectionType
+  rtt?: number
+  saveData?: boolean
+}
+
 /**
  * Detect current network conditions and quality
  */
@@ -38,7 +47,8 @@ export function detectNetworkQuality(): NetworkQuality {
 
   // Check connection API (available in modern browsers)
   if ('connection' in navigator) {
-    const connection = (navigator as any).connection
+  const navigatorWithConnection = navigator as Navigator & { connection?: NavigatorConnection }
+    const connection = navigatorWithConnection.connection
 
     if (connection) {
       const effectiveType = connection.effectiveType || '4g'

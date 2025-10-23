@@ -5,17 +5,12 @@ import { VictoryAxis, VictoryChart, VictoryLine, VictoryTheme } from "victory"
 
 import { cn } from "@/lib/utils"
 
-type ChartProps = {
-  className?: string
-  children?: React.ReactNode
-  [key: string]: any
-}
+type ChartProps = React.HTMLAttributes<HTMLDivElement>
 
 type TideChartProps = {
   data: { time: string; level: number }[]
   className?: string
-  [key: string]: any
-}
+} & Omit<React.ComponentProps<typeof VictoryChart>, 'children'>
 
 type ChartContextType = {
   chartRef: React.RefObject<HTMLDivElement | null>

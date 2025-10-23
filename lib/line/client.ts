@@ -1,7 +1,26 @@
 import { setTimeout as delay } from "node:timers/promises"
 import type { LineMessage } from "./types"
 
-const LINE_API_BASE = "https://api.line.me/v2/bot"
+function resolveLineApiBaseUrl(): string {
+  const raw = process.env.LINE_API_BASE_URL?.trim()
+  const fallback = "https://api.line.me"
+
+  if (!raw) return fallback
+
+  try {
+    const url = new URL(raw)
+    if (url.hostname === "api.line.biz") {
+      console.warn("[LINE] LINE_API_BASE_URL uses deprecated api.line.biz, switching to api.line.me")
+      url.hostname = "api.line.me"
+    }
+    return url.toString().replace(/\/+$/, "")
+  } catch {
+    console.warn("[LINE] Invalid LINE_API_BASE_URL value, falling back to https://api.line.me")
+    return fallback
+  }
+}
+
+const LINE_API_BASE = `${resolveLineApiBaseUrl()}/v2/bot`
 const DEFAULT_RETRY_ATTEMPTS = 3
 
 function getChannelAccessToken(): string {

@@ -7,8 +7,46 @@
  * - Follow events (welcome message)
  */
 
+import { mkdir, appendFile } from 'node:fs/promises'
+import path from 'node:path'
+
 import { compactClient } from '@/lib/compression/compact-client'
 import type { LocationData } from '@/lib/tide-service'
+
+function resolveLineApiBaseUrl(): string {
+  const raw = process.env.LINE_API_BASE_URL?.trim()
+  if (!raw) return 'https://api.line.me'
+
+  try {
+    const url = new URL(raw)
+    if (url.hostname === 'api.line.biz') {
+      console.warn('[LINE] LINE_API_BASE_URL uses deprecated api.line.biz, switching to api.line.me')
+      url.hostname = 'api.line.me'
+      return url.toString().replace(/\/+$/, '')
+    }
+    return url.toString().replace(/\/+$/, '')
+  } catch {
+    console.warn('[LINE] Invalid LINE_API_BASE_URL value, falling back to https://api.line.me')
+    return 'https://api.line.me'
+  }
+}
+
+const LINE_API_BASE_URL = resolveLineApiBaseUrl()
+
+async function logOfflineReply(payload: { replyToken: string; messages: Record<string, unknown>[] }) {
+  const fallbackPath =
+    process.env.LINE_OFFLINE_LOG_PATH || path.join(process.cwd(), '.next', 'logs', 'line-offline-replies.log')
+  const directory = path.dirname(fallbackPath)
+
+  try {
+    await mkdir(directory, { recursive: true })
+    const line = `${new Date().toISOString()} ${JSON.stringify(payload)}\n`
+    await appendFile(fallbackPath, line, 'utf8')
+    console.log(`[LINE] Offline reply recorded at ${fallbackPath}`)
+  } catch (error) {
+    console.warn('[LINE] Failed to record offline reply log:', error)
+  }
+}
 
 // Thai locations mapping
 const LOCATION_MAP: Record<string, LocationData> = {
@@ -23,10 +61,22 @@ const LOCATION_MAP: Record<string, LocationData> = {
   'พังงา': { lat: 8.4304, lon: 98.5298, name: 'พังงา' },
   'ตรัง': { lat: 7.5589, lon: 99.6259, name: 'ตรัง' },
 
+  // Eastern Thailand
+  'ชลบุรี': { lat: 13.361, lon: 100.984, name: 'ชลบุรี' },
+  'ระนอง': { lat: 9.969, lon: 98.629, name: 'ระนอง' },
+  'บันฉุง': { lat: 11.933, lon: 100.073, name: 'บันฉุง' },
+  'กำแพงแสน': { lat: 13.202, lon: 99.981, name: 'กำแพงแสน' },
+  'เพชรบุรี': { lat: 12.831, lon: 99.787, name: 'เพชรบุรี' },
+  'ประจวบคีรีขันธ์': { lat: 11.811, lon: 99.807, name: 'ประจวบคีรีขันธ์' },
+
   // Alternative names
   'เกาะสมุย': { lat: 8.6391, lon: 100.3348, name: 'เกาะสมุย' },
   'ภูมิพล': { lat: 17.3, lon: 104.6, name: 'ภูมิพล' },
   'ทะเบียน': { lat: 14.8, lon: 104.1, name: 'ทะเบียน' },
+  
+  // Common spelling variations
+  'ชลบุรีศรีราชา': { lat: 13.361, lon: 100.984, name: 'ชลบุรี' },
+  'ระยองมาบแจ': { lat: 6.8495, lon: 101.9674, name: 'ระยอง' },
 }
 
 interface LineEvent {
@@ -212,7 +262,9 @@ export async function sendLineMessage(
   try {
     console.log(`📤 Sending ${messages.length} message(s) to LINE`)
     
-    const response = await fetch('https://api.line.biz/v2/bot/message/reply', {
+    const messageArray = Array.isArray(messages) ? messages : [messages]
+
+    const response = await fetch(`${LINE_API_BASE_URL}/v2/bot/message/reply`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -220,7 +272,7 @@ export async function sendLineMessage(
       },
       body: JSON.stringify({
         replyToken,
-        messages: Array.isArray(messages) ? messages : [messages]
+        messages: messageArray
       })
     })
 
@@ -235,7 +287,8 @@ export async function sendLineMessage(
     console.error('❌ Send message failed:', error)
     // In development, log but don't crash
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ Warning: Message send failed, but continuing...')
+      await logOfflineReply({ replyToken, messages })
+      console.warn('⚠️ Warning: Message send failed, storing offline log instead.')
     } else {
       throw error
     }
@@ -271,7 +324,7 @@ export async function pushLineMessage(
     throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured')
   }
 
-  const response = await fetch('https://api.line.biz/v2/bot/message/push', {
+  const response = await fetch(`${LINE_API_BASE_URL}/v2/bot/message/push`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -302,7 +355,7 @@ export async function broadcastLineMessage(
     throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured')
   }
 
-  const response = await fetch('https://api.line.biz/v2/bot/message/broadcast', {
+  const response = await fetch(`${LINE_API_BASE_URL}/v2/bot/message/broadcast`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -98,9 +98,10 @@ export function compressForecast(
   if (tideData && weatherData) typeCode = 0x2
   else if (tideData) typeCode = 0x0
   else if (weatherData) typeCode = 0x1
-  
-  const header = (0 << 6) | (typeCode << 3) | 0 // version=0, flags=0
-  buffer.push(header)
+
+  let flags = 0
+  const headerIndex = buffer.length
+  buffer.push(0) // placeholder until flags known
   
   // 2. Timestamp (2 bytes, little-endian)
   const ts = Math.floor(Date.now() / 1000)
@@ -112,6 +113,7 @@ export function compressForecast(
     Math.abs(location.lon - lastLocation.lon) > 0.01
   
   if (locChanged) {
+    flags |= 0x1
     buffer.push(encodeFloat16(location.lat, 1, 20))    // Thailand latitude
     buffer.push(encodeFloat16(location.lon, 97, 106))  // Thailand longitude
   }
@@ -129,6 +131,7 @@ export function compressForecast(
     
     // High tide info (optional)
     if (tideData.highTideTime) {
+      flags |= 0x2
       // Parse HH:MM format
       const htHeight = encodeTideHeight(2.0) // default high tide height
       const parts = tideData.highTideTime.split(':')
@@ -151,7 +154,11 @@ export function compressForecast(
     buffer.push(Math.max(0, Math.min(255, humidity)))
     buffer.push(Math.max(0, Math.min(255, windDir)))
   }
-  
+
+  // Finalize header with version + type + flags
+  const header = (0 << 6) | (typeCode << 3) | (flags & 0x3)
+  buffer[headerIndex] = header
+
   return new Uint8Array(buffer)
 }
 
@@ -161,9 +168,13 @@ export function compressForecast(
 export function decompressForecast(data: Uint8Array, lastLocation?: LocationData): CompactFrame {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
   let offset = 0
+  const readByte = () => {
+    if (offset >= data.length) return 0
+    return view.getUint8(offset++)
+  }
   
   // 1. Parse header
-  const header = view.getUint8(offset++)
+  const header = readByte()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const version = (header >> 6) & 0x3
   const typeCode = (header >> 3) & 0x7
@@ -173,15 +184,31 @@ export function decompressForecast(data: Uint8Array, lastLocation?: LocationData
   const type = typeMap[typeCode] ?? 'ping'
   
   // 2. Parse timestamp (little-endian)
-  const ts = view.getUint8(offset++) | (view.getUint8(offset++) << 8)
-  const timestamp = ts
+  const tsLow = readByte()
+  const tsHigh = readByte()
+  const tsRaw = tsLow | (tsHigh << 8)
+  const nowSeconds = Math.floor(Date.now() / 1000)
+  const base = nowSeconds & ~0xffff
+  const candidates = [
+    base | tsRaw,
+    (base | tsRaw) - 0x10000,
+    (base | tsRaw) + 0x10000,
+  ]
+  let timestampSeconds = candidates[0]
+  for (const candidate of candidates) {
+    if (Math.abs(candidate - nowSeconds) < Math.abs(timestampSeconds - nowSeconds)) {
+      timestampSeconds = candidate
+    }
+  }
+  const timestamp = timestampSeconds
   
   // 3. Location
   let loc: { lat: number; lon: number } | undefined
   const hasLocation = (flags & 0x1) !== 0
-  if (hasLocation && offset + 1 < data.length) {
-    const latEnc = view.getUint8(offset++)
-    const lonEnc = view.getUint8(offset++)
+  const hasHighTide = (flags & 0x2) !== 0
+  if (hasLocation && data.length - offset >= 2) {
+    const latEnc = readByte()
+    const lonEnc = readByte()
     loc = {
       lat: decodeFloat16(latEnc, 1, 20),
       lon: decodeFloat16(lonEnc, 97, 106),
@@ -193,16 +220,16 @@ export function decompressForecast(data: Uint8Array, lastLocation?: LocationData
   // 4. Tide data
   let tide: CompactFrame['tide'] | undefined
   if (typeCode === 0x0 || typeCode === 0x2) {
-    const heightEnc = view.getUint8(offset++)
+    const heightEnc = readByte()
     const h = decodeTideHeight(heightEnc)
-    const trend = view.getUint8(offset++)
+    const trend = readByte()
     
     tide = { h, trend }
     
     // High tide info
-    if (offset + 1 < data.length) {
-      const htHeight = decodeTideHeight(view.getUint8(offset++))
-      const htTime = view.getUint8(offset++)
+    if (hasHighTide && data.length - offset >= 2) {
+      const htHeight = decodeTideHeight(readByte())
+      const htTime = readByte()
       tide.ht = htHeight
       tide.ht_time = htTime
     }
@@ -211,10 +238,10 @@ export function decompressForecast(data: Uint8Array, lastLocation?: LocationData
   // 5. Weather data
   let weather: CompactFrame['weather'] | undefined
   if (typeCode === 0x1 || typeCode === 0x2) {
-    const t = (view.getUint8(offset++) ?? 25) - 10
-    const w = view.getUint8(offset++) ?? 0
-    const c = view.getUint8(offset++) ?? 0
-    const wd = view.getUint8(offset++) ?? 0
+    const t = readByte() - 10
+    const w = readByte()
+    const c = readByte()
+    const wd = readByte()
     
     weather = { t, w, c, wd }
   }

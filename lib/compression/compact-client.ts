@@ -10,13 +10,53 @@
 import { decompressForecast, type CompactFrame } from '@/lib/compression/compact-protocol'
 import type { LocationData } from '@/lib/tide-service'
 
+function normalizeBaseUrl(url: string | undefined | null): string {
+  if (!url) return ''
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed.replace(/\/+$/, '')
+  }
+
+  return `https://${trimmed.replace(/\/+$/, '')}`
+}
+
+function resolveRuntimeBaseUrl(explicitBase: string): string {
+  const normalizedExplicit = normalizeBaseUrl(explicitBase)
+  if (normalizedExplicit) return normalizedExplicit
+
+  const candidates = [
+    process.env.NEXT_PUBLIC_API_URL,
+    process.env.NEXT_API_URL,
+    process.env.VERCEL_URL,
+  ]
+
+  for (const candidate of candidates) {
+    const normalized = normalizeBaseUrl(candidate)
+    if (normalized) return normalized
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin.replace(/\/+$/, '')
+  }
+
+  // Final fallback for local dev / testing environments
+  return 'http://127.0.0.1:3000'
+}
+
 export class CompactForecastClient {
-  private baseUrl: string = ''
+  private baseUrl: string
   private lastLocation?: { lat: number; lon: number }
   private cache: Map<string, CompactFrame> = new Map()
   
   constructor(baseUrl: string = '') {
-    this.baseUrl = baseUrl
+    this.baseUrl = normalizeBaseUrl(baseUrl)
+  }
+
+  private getBaseUrl(): string {
+    this.baseUrl = resolveRuntimeBaseUrl(this.baseUrl)
+    return this.baseUrl
   }
   
   /**
@@ -40,7 +80,8 @@ export class CompactForecastClient {
     error?: string
   }> {
     try {
-      const url = new URL(`${this.baseUrl}/api/forecast/compact`)
+      const baseUrl = this.getBaseUrl()
+      const url = new URL('/api/forecast/compact', `${baseUrl}/`)
       url.searchParams.set('lat', lat.toString())
       url.searchParams.set('lon', lon.toString())
       url.searchParams.set('format', 'compact')
@@ -168,7 +209,8 @@ export class CompactForecastClient {
    */
   async uploadBatchData(frames: CompactFrame[]): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/forecast/batch`, {
+      const baseUrl = this.getBaseUrl()
+      const response = await fetch(`${baseUrl}/api/forecast/batch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

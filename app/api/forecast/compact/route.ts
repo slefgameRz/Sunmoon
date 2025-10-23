@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
 /**
  * Calculate compression ratio as percentage
  */
-function calculateRatio(original: any, compressed: Uint8Array): string {
+function calculateRatio(original: Record<string, unknown>, compressed: Uint8Array): string {
   const originalSize = JSON.stringify(original).length
   const ratio = ((1 - compressed.byteLength / originalSize) * 100).toFixed(1)
   return ratio

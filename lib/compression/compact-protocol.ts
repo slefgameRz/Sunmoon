@@ -161,6 +161,7 @@ export function decompressForecast(data: Uint8Array, lastLocation?: LocationData
   
   // 1. Parse header
   const header = view.getUint8(offset++)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const version = (header >> 6) & 0x3
   const typeCode = (header >> 3) & 0x7
   const flags = header & 0x3
@@ -264,7 +265,7 @@ export function selectCompressionLevel(signalStrength: number): 'minimal' | 'com
  * - Original: 16 ms
  * - Compressed: 0.3 ms
  */
-export function estimateCompressionStats(original: any, compressed: Uint8Array): {
+export function estimateCompressionStats(original: Record<string, unknown>, compressed: Uint8Array): {
   originalSize: number
   compressedSize: number
   ratio: number

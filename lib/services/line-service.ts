@@ -46,21 +46,32 @@ interface LineEvent {
  */
 export async function handleLineMessage(event: LineEvent): Promise<void> {
   try {
-    if (!event.message) return
+    if (!event.message) {
+      console.log('⚠️ No message in event')
+      return
+    }
 
     if (event.message.type === 'text') {
+      console.log('📝 Processing text message')
       await handleTextMessage(event)
     } else if (event.message.type === 'location') {
+      console.log('📍 Processing location message')
       await handleLocationMessage(event)
+    } else {
+      console.log(`⚠️ Unsupported message type: ${event.message.type}`)
     }
   } catch (error) {
-    console.error('Error handling LINE message:', error)
-    await sendLineMessage(event.replyToken, [
-      {
-        type: 'text',
-        text: '⚠️ ขออภัย เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'
-      }
-    ])
+    console.error('❌ Error handling LINE message:', error)
+    try {
+      await sendLineMessage(event.replyToken, [
+        {
+          type: 'text',
+          text: '⚠️ ขออภัย เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'
+        }
+      ])
+    } catch (sendError) {
+      console.error('❌ Failed to send error message:', sendError)
+    }
   }
 }
 
@@ -198,22 +209,36 @@ export async function sendLineMessage(
     throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured')
   }
 
-  const response = await fetch('https://api.line.biz/v2/bot/message/reply', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`
-    },
-    body: JSON.stringify({
-      replyToken,
-      messages: Array.isArray(messages) ? messages : [messages]
+  try {
+    console.log(`📤 Sending ${messages.length} message(s) to LINE`)
+    
+    const response = await fetch('https://api.line.biz/v2/bot/message/reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        replyToken,
+        messages: Array.isArray(messages) ? messages : [messages]
+      })
     })
-  })
 
-  if (!response.ok) {
-    const error = await response.text()
-    console.error('LINE API error:', error)
-    throw new Error(`LINE API error: ${response.statusText}`)
+    if (!response.ok) {
+      const error = await response.text()
+      console.error('❌ LINE API error:', error)
+      throw new Error(`LINE API error: ${response.statusText}`)
+    }
+    
+    console.log('✅ Message sent successfully')
+  } catch (error) {
+    console.error('❌ Send message failed:', error)
+    // In development, log but don't crash
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ Warning: Message send failed, but continuing...')
+    } else {
+      throw error
+    }
   }
 }
 

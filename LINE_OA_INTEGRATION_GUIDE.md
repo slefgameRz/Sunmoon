@@ -657,7 +657,290 @@ Data cost: 97% reduction!
 
 ---
 
-## 🧪 Testing
+## 🔧 Troubleshooting Guide
+
+### Problem 1: "Invalid LINE signature"
+
+**Symptoms:**
+```
+❌ Invalid LINE signature - Rejecting request
+Signature mismatch
+```
+
+**Causes & Solutions:**
+
+| Cause | Solution |
+|-------|----------|
+| Wrong `LINE_CHANNEL_SECRET` | Verify in LINE Developers Console → Channel Settings |
+| Secret changed but app not restarted | Restart dev server: `pnpm dev` |
+| Testing locally without ngrok | Use ngrok: `ngrok http 3000` |
+| Dev tunnel not updated | Update webhook URL in LINE Console |
+
+**How to verify:**
+
+```bash
+# Check if secret is loaded
+curl http://localhost:3000/api/webhook/line
+
+# Should show:
+# {
+#   "status": "ok",
+#   "secrets": {
+#     "channelSecret": "✅ Set",
+#     "accessToken": "✅ Set"
+#   }
+# }
+```
+
+---
+
+### Problem 2: "fetch failed: getaddrinfo ENOTFOUND api.line.biz"
+
+**Symptoms:**
+```
+TypeError: fetch failed
+[Error: getaddrinfo ENOTFOUND api.line.biz]
+```
+
+**Causes & Solutions:**
+
+| Cause | Solution |
+|-------|----------|
+| **No internet connection** | Check network connectivity |
+| **Firewall blocking** | Add `api.line.biz` to firewall whitelist |
+| **Running offline** | Reply messages won't send; continue testing |
+| **Network timeout** | Increase timeout in fetch (see code below) |
+
+**In Development:**
+
+This error is **expected** if you don't have internet. The webhook still receives messages ✅ but can't send replies.
+
+**Solution: Add timeout handling**
+
+```typescript
+// In lib/services/line-service.ts
+const controller = new AbortController()
+const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+try {
+  const response = await fetch('https://api.line.biz/v2/bot/message/reply', {
+    method: 'POST',
+    headers: { /* ... */ },
+    body: JSON.stringify({ /* ... */ }),
+    signal: controller.signal
+  })
+} finally {
+  clearTimeout(timeoutId)
+}
+```
+
+---
+
+### Problem 3: "Error handling LINE message"
+
+**Symptoms:**
+```
+❌ Error handling LINE message: TypeError: ...
+```
+
+**Common Causes:**
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Cannot read property 'fetchCompactForecast'` | compactClient not initialized | Check tide-service.ts imports |
+| `Location not found` | Thai text parsing failed | Add location to LOCATION_MAP |
+| `TypeError in formatForecastMessage` | Forecast data structure wrong | Log forecast object to check |
+
+**Debug Steps:**
+
+1. **Check logs carefully:**
+   ```bash
+   # Look for error stack traces
+   # Line numbers show where it fails
+   ```
+
+2. **Add console logs:**
+   ```typescript
+   async function handleTextMessage(event: LineEvent): Promise<void> {
+     const text = event.message?.text || ''
+     console.log('📝 Text:', text)
+     
+     const location = parseLocationFromText(text)
+     console.log('📍 Parsed location:', location)
+     
+     if (!location) {
+       console.log('❌ No location found in text')
+       // ...
+     }
+   }
+   ```
+
+3. **Check forecast data:**
+   ```typescript
+   const forecast = await compactClient.fetchCompactForecast(lat, lon)
+   console.log('📊 Forecast:', JSON.stringify(forecast, null, 2))
+   ```
+
+---
+
+### Problem 4: "Message sent but no response on LINE"
+
+**Symptoms:**
+```
+✅ Message processed
+✅ Message sent successfully
+
+But no reply appears on LINE client
+```
+
+**Causes & Solutions:**
+
+| Cause | Solution |
+|-------|----------|
+| **Message sent to wrong replyToken** | Use replyToken from webhook, not user ID |
+| **Access Token expired** | Refresh from LINE Developers Console |
+| **User blocked bot** | User needs to unblock and add again |
+| **Bot is not activated** | Enable webhook in LINE Developers Console |
+| **Message format incorrect** | Check JSON structure in formatForecastMessage |
+
+**Verify webhook is enabled:**
+
+1. Go to [LINE Developers Console](https://developers.line.biz)
+2. Select your channel
+3. Under "Messaging API" settings
+4. ✅ Enable "Webhook"
+5. Set "Webhook URL" to your endpoint
+6. Save
+
+---
+
+### Problem 5: Network Issues with Dev Tunnels
+
+**Symptoms:**
+```
+⚠️ Connection timeout
+❌ Cannot reach endpoint
+```
+
+**Solutions:**
+
+**For ngrok:**
+```bash
+# Start ngrok
+ngrok http 3000
+
+# Get URL like: https://abc123.ngrok.io
+# Update in LINE Console → Webhook URL: https://abc123.ngrok.io/api/webhook/line
+# Restart dev server
+pnpm dev
+```
+
+**For Dev Tunnels:**
+```bash
+# Create tunnel
+devtunnel create --allow-anonymous
+
+# Get URL and update webhook
+# In LINE Console: https://your-tunnel-url/api/webhook/line
+```
+
+**For local testing (without tunnel):**
+```bash
+# Just run dev server
+pnpm dev
+
+# You can't test from actual LINE app, but:
+# - Logs show webhook events
+# - Signature verification works
+# - Can use curl to test: see below
+```
+
+---
+
+### Testing with curl
+
+```bash
+# 1. Start dev server
+pnpm dev
+
+# 2. Get the signature secret (from .env.local)
+# LINE_CHANNEL_SECRET=your_secret_here
+
+# 3. Create test payload
+cat > test_payload.json << 'EOF'
+{
+  "events": [
+    {
+      "type": "message",
+      "message": {
+        "type": "text",
+        "text": "ทำนายน้ำ ภูเก็ต"
+      },
+      "replyToken": "test_reply_token_12345",
+      "source": {
+        "userId": "Uf4a967531890e8071e0b1eae6791245f"
+      },
+      "timestamp": 1735000000000
+    }
+  ]
+}
+EOF
+
+# 4. Generate signature
+# (This requires Node.js script - see below)
+
+# 5. Send test request
+# curl -X POST http://localhost:3000/api/webhook/line \
+#   -H "Content-Type: application/json" \
+#   -H "X-Line-Signature: <generated-signature>" \
+#   -d @test_payload.json
+```
+
+**Generate signature in Node.js:**
+
+```javascript
+const crypto = require('crypto');
+const fs = require('fs');
+
+const secret = 'your_LINE_CHANNEL_SECRET';
+const body = fs.readFileSync('test_payload.json', 'utf-8');
+
+const signature = crypto
+  .createHmac('SHA256', secret)
+  .update(body)
+  .digest('base64');
+
+console.log('Signature:', signature);
+```
+
+---
+
+### Helpful Commands
+
+```bash
+# Check if webhook is reachable
+curl http://localhost:3000/api/webhook/line
+
+# Should return:
+# {"status":"ok","service":"LINE Webhook","secrets":{"channelSecret":"✅ Set","accessToken":"✅ Set"}}
+
+# Watch dev server logs
+pnpm dev
+
+# Rebuild after env changes
+pnpm build
+
+# Check Node modules (if dependency issue)
+pnpm install
+
+# Clear cache and rebuild
+rm -rf .next
+pnpm build
+```
+
+---
+
+
 
 ### Local Testing with ngrok
 

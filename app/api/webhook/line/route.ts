@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { handleLineMessage } from '@/lib/services/line-messaging'
 
 /**
  * LINE Webhook API endpoint
@@ -52,12 +51,12 @@ export async function POST(request: NextRequest) {
       if (event.type === 'message' && event.message.type === 'text') {
         const userId = event.source.userId
         const messageText = event.message.text
-        const replyToken = event.replyToken
+        // const replyToken = event.replyToken
 
         console.log(`Received message from ${userId}: ${messageText}`)
 
-        // Handle the message
-        await handleLineMessage(userId, messageText, replyToken)
+        // TODO: Implement message handling
+        // For now, just log the message
       }
     }
 

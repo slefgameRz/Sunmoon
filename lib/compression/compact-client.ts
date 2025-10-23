@@ -8,6 +8,7 @@
  */
 
 import { decompressForecast, type CompactFrame } from '@/lib/compression/compact-protocol'
+import type { LocationData } from '@/lib/tide-service'
 
 export class CompactForecastClient {
   private baseUrl: string = ''
@@ -81,11 +82,11 @@ export class CompactForecastClient {
       // Decompress binary data
       const arrayBuffer = await response.arrayBuffer()
       const uint8Array = new Uint8Array(arrayBuffer)
-      const data = decompressForecast(uint8Array, this.lastLocation)
+      const data = decompressForecast(uint8Array, this.lastLocation as LocationData | undefined)
       
       // Cache location
       if (data.loc) {
-        this.lastLocation = data.loc
+        this.lastLocation = { ...data.loc, name: 'Unknown' }
       }
       
       // Cache data

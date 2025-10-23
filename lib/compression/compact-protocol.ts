@@ -118,34 +118,37 @@ export function compressForecast(
   
   // 4. Tide data
   if (tideData) {
-    const height = tideData.currentHeight ?? 0
+    const height = tideData.currentWaterLevel ?? 0
     buffer.push(encodeTideHeight(height))
     
-    // Trend (1 bit)
+    // Trend (1 bit) - based on waterLevelStatus
     let trend = 0
-    if (tideData.trend === 'rising') trend = 1
-    else if (tideData.trend === 'falling') trend = 2
+    if (tideData.waterLevelStatus === 'น้ำขึ้น') trend = 1
+    else if (tideData.waterLevelStatus === 'น้ำลง') trend = 2
     buffer.push(trend)
     
     // High tide info (optional)
-    if (tideData.highTide) {
-      const htHeight = encodeTideHeight(tideData.highTide.height ?? 0)
-      const htTime = Math.min(255, Math.floor((tideData.highTide.time?.getTime() ?? 0 - Date.now()) / 3600000))
+    if (tideData.highTideTime) {
+      // Parse HH:MM format
+      const htHeight = encodeTideHeight(2.0) // default high tide height
+      const parts = tideData.highTideTime.split(':')
+      const hours = parseInt(parts[0]) || 0
+      const htTime = Math.min(255, Math.max(0, hours))
       buffer.push(htHeight)
-      buffer.push(Math.max(0, htTime))
+      buffer.push(htTime)
     }
   }
   
   // 5. Weather data
   if (weatherData) {
-    const temp = Math.round(weatherData.temperature ?? 25) + 10 // shift to 0-60
-    const wind = Math.round(weatherData.windSpeed ?? 0)
-    const cloud = Math.round(weatherData.cloudCoverage ?? 0)
-    const windDir = Math.round(weatherData.windDirection ?? 0)
+    const temp = Math.round(weatherData.main?.temp ?? 25) + 10 // shift to 0-60
+    const wind = Math.round(weatherData.wind?.speed ?? 0)
+    const humidity = Math.round(weatherData.main?.humidity ?? 50)
+    const windDir = Math.round(weatherData.wind?.deg ?? 0)
     
     buffer.push(Math.max(0, Math.min(255, temp)))
     buffer.push(Math.max(0, Math.min(255, wind)))
-    buffer.push(Math.max(0, Math.min(255, cloud)))
+    buffer.push(Math.max(0, Math.min(255, humidity)))
     buffer.push(Math.max(0, Math.min(255, windDir)))
   }
   

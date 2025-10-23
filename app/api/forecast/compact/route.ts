@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Return binary response
-      return new NextResponse(compressed, {
+      return new NextResponse(Buffer.from(compressed), {
         headers: {
           'Content-Type': 'application/octet-stream',
           'Content-Encoding': 'identity',

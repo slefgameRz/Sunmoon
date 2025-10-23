@@ -222,6 +222,7 @@ function formatForecastMessage(
   forecast: Record<string, unknown>,
   location: LocationData
 ): Record<string, unknown> {
+  // Extract tide data
   const tideStatus =
     (forecast.tideData as Record<string, unknown>)?.waterLevelStatus ||
     'ไม่ทราบ'
@@ -229,18 +230,53 @@ function formatForecastMessage(
     (forecast.tideData as Record<string, unknown>)?.currentWaterLevel !== undefined
       ? (forecast.tideData as Record<string, unknown>).currentWaterLevel
       : null
+  const pierDistance =
+    (forecast.tideData as Record<string, unknown>)?.pierDistance !== undefined
+      ? (forecast.tideData as Record<string, unknown>).pierDistance
+      : null
+  const nearestPierName =
+    (forecast.tideData as Record<string, unknown>)?.nearestPierName || null
   
+  // Extract next tide events
+  const tideEvents = (forecast.tideData as Record<string, unknown>)
+    ?.tideEvents as Array<{ time: string; type: string; level: number }> | undefined
+  let nextHighTide = null
+  let nextLowTide = null
+  
+  if (Array.isArray(tideEvents)) {
+    for (const event of tideEvents) {
+      if (event.type === 'high' && !nextHighTide) {
+        nextHighTide = event
+      }
+      if (event.type === 'low' && !nextLowTide) {
+        nextLowTide = event
+      }
+    }
+  }
+
+  // Extract weather data
   const temp =
     (forecast.weatherData as Record<string, unknown>)?.main &&
     ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)
       ?.temp !== undefined
       ? ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>).temp
       : 'ไม่ทราบ'
+  const feelsLike =
+    (forecast.weatherData as Record<string, unknown>)?.main &&
+    ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)
+      ?.feels_like !== undefined
+      ? ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>).feels_like
+      : null
   const windSpeed =
     (forecast.weatherData as Record<string, unknown>)?.wind &&
     ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>)?.speed
       ? ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>).speed
       : 'ไม่ทราบ'
+  const windGust =
+    (forecast.weatherData as Record<string, unknown>)?.wind &&
+    ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>)?.gust
+      ? ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>).gust
+      : null
   const humidity =
     (forecast.weatherData as Record<string, unknown>)?.main &&
     ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)?.humidity
@@ -252,14 +288,16 @@ function formatForecastMessage(
       ? ((forecast.weatherData as Record<string, unknown>).weather as Array<{ main: string }>)[0]?.main
       : null
 
-  // Improved format with better data display
+  // Format display values
   const tideEmoji = tideStatus === 'น้ำขึ้น' ? '🔺' : '🔻'
   const tideLabel = tideStatus === 'น้ำขึ้น' ? 'น้ำขึ้น' : 'น้ำลง'
   const tempDisplay = typeof temp === 'number' ? Math.round(temp) : '?'
+  const feelsLikeDisplay = typeof feelsLike === 'number' ? Math.round(feelsLike) : null
   const windDisplay = typeof windSpeed === 'number' ? Math.round(windSpeed * 10) / 10 : '?'
+  const windGustDisplay = typeof windGust === 'number' ? Math.round(windGust * 10) / 10 : null
   const humidityDisplay = typeof humidity === 'number' ? humidity : '?'
 
-  // Get weather emoji based on description
+  // Get weather emoji and condition text
   const weatherEmoji = description
     ? description.includes('Rain') || description.includes('rain')
       ? '🌧️'
@@ -269,24 +307,64 @@ function formatForecastMessage(
           ? '☀️'
           : '🌡️'
     : '🌡️'
-
-  // Build height info if available
-  const heightInfo = typeof currentHeight === 'number' ? ` (${(currentHeight as number).toFixed(2)}ม.)` : ''
   
+  const weatherText = description || 'ปกติ'
+
+  // Build current water level info
+  const heightInfo = typeof currentHeight === 'number' ? ` (${(currentHeight as number).toFixed(2)}ม.)` : ''
+
+  // Build pier distance info
+  const pierInfo = typeof pierDistance === 'number' 
+    ? `📍 ท่าเรือ: ${pierDistance < 1000 ? `${pierDistance}ม.` : `${(pierDistance / 1000).toFixed(1)}กม.`}${nearestPierName ? ` (${nearestPierName})` : ''}`
+    : ''
+
+  // Build next tide forecast
+  const tideForecast = []
+  if (nextHighTide) {
+    tideForecast.push(`⬆️ น้ำขึ้นสูง: ${nextHighTide.time} (${nextHighTide.level.toFixed(2)}ม.)`)
+  }
+  if (nextLowTide) {
+    tideForecast.push(`⬇️ น้ำลงต่ำ: ${nextLowTide.time} (${nextLowTide.level.toFixed(2)}ม.)`)
+  }
+  const tideForecastText = tideForecast.length > 0 ? tideForecast.join('\n') : ''
+
+  // Build feels like info
+  const feelsLikeText = feelsLikeDisplay ? ` (รู้สึก ${feelsLikeDisplay}°C)` : ''
+
   // Build web link with coordinates
   const webUrl = `https://${process.env.VERCEL_URL || 'yourdomain.com'}/forecast?lat=${location.lat}&lon=${location.lon}&mode=full`
 
-  // Improved message format
+  // Build comprehensive message
+  let messageText = `🌊 ${location.name}\n` +
+                   `━━━━━━━━━━━━━━━━━━\n`
+
+  // Current status section
+  messageText += `${tideEmoji} ${tideLabel}${heightInfo}\n`
+
+  // Weather section
+  messageText += `${weatherEmoji} ${weatherText} | ${tempDisplay}°C${feelsLikeText}\n` +
+                 `💨 ${windDisplay}m/s${windGustDisplay ? ` (ต่อ ${windGustDisplay})` : ''} | 💧 ${humidityDisplay}%\n`
+
+  messageText += `━━━━━━━━━━━━━━━━━━\n`
+
+  // Pier distance if available
+  if (pierInfo) {
+    messageText += `${pierInfo}\n\n`
+  }
+
+  // Tide forecast if available
+  if (tideForecastText) {
+    messageText += `📅 พยากรณ์:\n${tideForecastText}\n\n`
+  }
+
+  // Web link and instructions
+  messageText += `📊 ข้อมูลเต็ม: ${webUrl}\n\n` +
+                 `💡 ส่ง: ทำนายน้ำ [จังหวัด]\n` +
+                 `📍 หรือแชร์ GPS`
+
   return {
     type: 'text',
-    text: `🌊 ${location.name}\n` +
-          `━━━━━━━━━━━━━━━━\n` +
-          `${tideEmoji} ${tideLabel}${heightInfo}\n` +
-          `${weatherEmoji} ${tempDisplay}°C | 💨 ${windDisplay}m/s | 💧 ${humidityDisplay}%\n` +
-          `━━━━━━━━━━━━━━━━\n` +
-          `📊 ข้อมูลเต็ม: ${webUrl}\n\n` +
-          `💡 ส่ง: ทำนายน้ำ [จังหวัด]\n` +
-          `📍 หรือแชร์ GPS`
+    text: messageText
   }
 }
 

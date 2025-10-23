@@ -7,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Sun,
-  Cloud,
   Waves,
   ArrowUp,
   ArrowDown,
@@ -18,14 +16,10 @@ import {
   MapPin,
   Navigation,
   RefreshCw,
-  Wind,
-  Gauge,
   CalendarIcon,
   Moon,
   Clock,
-  Search,
   Star,
-  Bookmark,
   Compass,
   Activity,
   Radio,
@@ -34,15 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   getLocationForecast,
-  type ForecastResult,
 } from "@/actions/get-location-forecast";
 import {
   type LocationData,
@@ -57,17 +43,14 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { useTheme } from "next-themes";
 import MapSelector from "./map-selector";
 import TideAnimationNew from "./tide-animation-new";
 import ApiStatusDashboard from "./api-status-dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 
 // Import distance and offline storage utilities
 import {
   findNearestPier,
-  formatDistance,
   getDistanceCategory,
   getDistanceCategoryText,
   getDistanceCategoryColor,
@@ -80,7 +63,6 @@ import {
   saveTideDataCache,
   loadWeatherDataCache,
   saveWeatherDataCache,
-  getCacheStats,
   initializeOfflineStorage,
 } from "@/lib/offline-storage";
 
@@ -125,62 +107,70 @@ const popularCoastalLocations: LocationData[] = [
   { lat: 13.3611, lon: 100.9847, name: "บางแสน" },
 ];
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isTideData = (value: unknown): value is TideData => {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.tideStatus === "string" &&
+    typeof value.apiStatus === "string" &&
+    typeof value.apiStatusMessage === "string" &&
+    typeof value.currentWaterLevel === "number"
+  );
+};
+
+const isWeatherData = (value: unknown): value is WeatherData => {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isRecord(value.main) &&
+    typeof value.main.temp === "number" &&
+    Array.isArray(value.weather) &&
+    value.weather.length > 0 &&
+    isRecord(value.weather[0]) &&
+    typeof value.weather[0].description === "string" &&
+    isRecord(value.wind) &&
+    typeof value.wind.speed === "number"
+  );
+};
+
 export default function EnhancedLocationSelector() {
   const latInputId = "lat-input";
   const lonInputId = "lon-input";
   const dateLabelId = "date-label";
-  const hourLabelId = "hour-label";
-  const minuteLabelId = "minute-label";
   const [selectedLocation, setSelectedLocation] = useState<LocationData>({
     lat: 13.7563,
     lon: 100.5018,
     name: "กรุงเทพมหานคร",
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedHour, setSelectedHour] = useState<string>("12");
-  const [selectedMinute, setSelectedMinute] = useState<string>("00");
   const alertShown = useRef(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isHourOpen, setIsHourOpen] = useState(false);
-  const [isMinuteOpen, setIsMinuteOpen] = useState(false);
   const [isMapDialogOpen, setIsMapDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [favorites, setFavorites] = useState<LocationData[]>([]);
-
-  const [forecastData, setForecastData] = useState<ForecastResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [currentTideData, setCurrentTideData] =
     useState<TideData>(defaultTideData);
   const [currentWeatherData, setCurrentWeatherData] =
     useState<WeatherData>(defaultWeatherData);
-  const [emergencyAlert, setEmergencyAlert] = useState<string | null>(null);
+
   const [nearestPierInfo, setNearestPierInfo] = useState<NearestPier | null>(
     null,
   );
-  const [cacheStats, setCacheStats] = useState({
-    totalEntries: 0,
-    tideEntries: 0,
-    weatherEntries: 0,
-    locationEntries: 0,
-    pierEntries: 0,
-    approximateSize: 0,
-  });
-
-  // Filtered locations based on search
-  const filteredLocations = popularCoastalLocations.filter((location) =>
-    location.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   // Update nearest pier information
   const updateNearestPier = useCallback(() => {
     const pier = findNearestPier(selectedLocation.lat, selectedLocation.lon);
     if (pier) {
       setNearestPierInfo(pier);
-      // Update cache stats
-      const stats = getCacheStats();
-      setCacheStats(stats);
     }
   }, [selectedLocation.lat, selectedLocation.lon]);
 
@@ -189,19 +179,27 @@ export default function EnhancedLocationSelector() {
     if (!isHydrated || !selectedLocation) return;
 
     setLoading(true);
+    let cachedTideData: TideData | null = null;
+    let cachedWeatherData: WeatherData | null = null;
+
     try {
-      // Try to load from cache first
-      const cachedTideData = loadTideDataCache(
+      const tideCacheRaw = loadTideDataCache(
         selectedLocation.lat,
         selectedLocation.lon,
         selectedDate,
       );
-      const cachedWeatherData = loadWeatherDataCache(
+      if (isTideData(tideCacheRaw)) {
+        cachedTideData = tideCacheRaw;
+      }
+
+      const weatherCacheRaw = loadWeatherDataCache(
         selectedLocation.lat,
         selectedLocation.lon,
       );
+      if (isWeatherData(weatherCacheRaw)) {
+        cachedWeatherData = weatherCacheRaw;
+      }
 
-      // If we have cached data and network might be unavailable, use it
       if (cachedTideData && cachedWeatherData) {
         console.log("Loading data from cache...");
         setCurrentTideData({
@@ -210,21 +208,14 @@ export default function EnhancedLocationSelector() {
           apiStatusMessage: "ข้อมูลจากแคช (ออฟไลน์)",
         });
         setCurrentWeatherData(cachedWeatherData);
-        setForecastData({
-          tideData: { ...cachedTideData, isFromCache: true },
-          weatherData: cachedWeatherData,
-          error: null,
-        });
       }
 
-      // Attempt to fetch fresh data
       const result = await getLocationForecast(
         selectedLocation,
         selectedDate || new Date(),
       );
 
       if (result?.tideData && result?.weatherData) {
-        // Save to cache
         saveTideDataCache(
           selectedLocation.lat,
           selectedLocation.lon,
@@ -237,17 +228,14 @@ export default function EnhancedLocationSelector() {
           result.weatherData,
         );
 
-        // Update state with fresh data
         setCurrentTideData({
           ...result.tideData,
           isFromCache: false,
         });
         setCurrentWeatherData(result.weatherData);
-        setForecastData(result);
       } else {
         const fallbackMessage = result?.error || "ไม่พบข้อมูล";
 
-        // Try cache as fallback if API fails
         if (cachedTideData) {
           setCurrentTideData({
             ...cachedTideData,
@@ -263,21 +251,30 @@ export default function EnhancedLocationSelector() {
           });
         }
         setCurrentWeatherData(defaultWeatherData);
-        setForecastData(result);
       }
     } catch (error) {
       console.error("Error fetching forecast:", error);
 
-      // Use cache as fallback on network error
-      const cachedTideData = loadTideDataCache(
-        selectedLocation.lat,
-        selectedLocation.lon,
-        selectedDate,
-      );
-      const cachedWeatherData = loadWeatherDataCache(
-        selectedLocation.lat,
-        selectedLocation.lon,
-      );
+      if (!cachedTideData) {
+        const tideCacheRaw = loadTideDataCache(
+          selectedLocation.lat,
+          selectedLocation.lon,
+          selectedDate,
+        );
+        if (isTideData(tideCacheRaw)) {
+          cachedTideData = tideCacheRaw;
+        }
+      }
+
+      if (!cachedWeatherData) {
+        const weatherCacheRaw = loadWeatherDataCache(
+          selectedLocation.lat,
+          selectedLocation.lon,
+        );
+        if (isWeatherData(weatherCacheRaw)) {
+          cachedWeatherData = weatherCacheRaw;
+        }
+      }
 
       if (cachedTideData && cachedWeatherData) {
         console.log("Network error - using cached data");
@@ -300,64 +297,105 @@ export default function EnhancedLocationSelector() {
         });
         setCurrentWeatherData(defaultWeatherData);
       }
-      setForecastData(null);
     } finally {
       setLoading(false);
     }
-  }, [
-    selectedLocation,
-    selectedDate,
-    selectedHour,
-    selectedMinute,
-    isHydrated,
-  ]);
+  }, [selectedLocation, selectedDate, isHydrated]);
 
-  // Enhanced geolocation function
+  // Enhanced geolocation function with IP fallback
   const getCurrentLocation = useCallback(async () => {
     if (typeof window === "undefined") return;
 
     setGettingLocation(true);
+    setGeoError(null);
+    
     try {
-      const position = await new Promise<GeolocationPosition>(
-        (resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000,
-          });
-        },
-      );
+      // Try browser geolocation first with short timeout
+      try {
+        const position = await new Promise<GeolocationPosition>(
+          (resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: false,
+              timeout: 5000, // Short 5 second timeout
+              maximumAge: 120000,
+            });
+          },
+        );
 
-      const newLocation = {
-        lat: position.coords.latitude,
-        lon: position.coords.longitude,
-        name: "ตำแหน่งปัจจุบัน",
+        const newLocation = {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          name: "ตำแหน่งปัจจุบัน (GPS)",
+        };
+
+        setSelectedLocation(newLocation);
+        localStorage.setItem("lastLocation", JSON.stringify(newLocation));
+        
+        setTimeout(() => {
+          if (isHydrated) {
+            fetchForecastData();
+          }
+        }, 100);
+        
+        setGettingLocation(false);
+        return; // Success!
+      } catch {
+        console.log("Browser geolocation failed, trying IP geolocation...");
+      }
+
+      // Fallback to IP geolocation API
+      try {
+        const response = await fetch("https://ipapi.co/json/");
+        if (!response.ok) throw new Error("IP API failed");
+        
+        const data = await response.json();
+        
+        if (data.latitude && data.longitude) {
+          const newLocation = {
+            lat: data.latitude,
+            lon: data.longitude,
+            name: `ตำแหน่งโดยประมาณ (${data.city || data.region || "IP"})`,
+          };
+
+          setSelectedLocation(newLocation);
+          localStorage.setItem("lastLocation", JSON.stringify(newLocation));
+          
+          setTimeout(() => {
+            if (isHydrated) {
+              fetchForecastData();
+            }
+          }, 100);
+          
+          setGettingLocation(false);
+          return; // Success with IP!
+        }
+      } catch {
+        console.log("IP geolocation failed, using Bangkok default...");
+      }
+
+      // Final fallback: Bangkok
+      const bangkokLocation = {
+        lat: 13.7563,
+        lon: 100.5018,
+        name: "กรุงเทพมหานคร (ค่าพื้นฐาน)",
       };
 
-      setSelectedLocation(newLocation);
-      localStorage.setItem("lastLocation", JSON.stringify(newLocation));
+      setSelectedLocation(bangkokLocation);
+      localStorage.setItem("lastLocation", JSON.stringify(bangkokLocation));
+      
+      setTimeout(() => {
+        if (isHydrated) {
+          fetchForecastData();
+        }
+      }, 100);
+
     } catch (error) {
-      console.error("Error getting location:", error);
+      console.error("All geolocation methods failed:", error);
+      setGeoError("ไม่สามารถหาตำแหน่งได้ กรุณาใช้แผนที่หรือใส่พิกัดเอง");
     } finally {
       setGettingLocation(false);
     }
-  }, []);
-
-  // Favorites management
-  const toggleFavorite = useCallback((location: LocationData) => {
-    setFavorites((prev) => {
-      const isAlreadyFavorite = prev.some((fav) => fav.name === location.name);
-      const newFavorites = isAlreadyFavorite
-        ? prev.filter((fav) => fav.name !== location.name)
-        : [...prev, location];
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("favoriteLocations", JSON.stringify(newFavorites));
-      }
-      return newFavorites;
-    });
-  }, []);
-
+  }, [isHydrated, fetchForecastData]);
   // Initialize on hydration
   useEffect(() => {
     setIsHydrated(true);
@@ -366,7 +404,6 @@ export default function EnhancedLocationSelector() {
       initializeOfflineStorage();
 
       const savedLocation = localStorage.getItem("lastLocation");
-      const savedFavorites = localStorage.getItem("favoriteLocations");
 
       if (savedLocation) {
         try {
@@ -375,18 +412,6 @@ export default function EnhancedLocationSelector() {
           console.error("Error parsing saved location:", error);
         }
       }
-
-      if (savedFavorites) {
-        try {
-          setFavorites(JSON.parse(savedFavorites));
-        } catch (error) {
-          console.error("Error parsing saved favorites:", error);
-        }
-      }
-
-      // Update cache stats
-      const stats = getCacheStats();
-      setCacheStats(stats);
     }
   }, []);
 
@@ -430,8 +455,9 @@ export default function EnhancedLocationSelector() {
       // Alert for high wind speeds (potential storm)
       if (windSpeed > 10 && !alertShown.current) {
         alertShown.current = true;
-        const alertMessage = `ตรวจพบความเร็วลมสูง ${windSpeed} m/s อาจมีพายุกำลังเข้ามา`;
-        setEmergencyAlert(alertMessage);
+        console.warn(
+          `ตรวจพบความเร็วลมสูง ${windSpeed} m/s อาจมีพายุกำลังเข้ามา`,
+        );
         setTimeout(() => {
           alertShown.current = false;
         }, 300000); // Reset after 5 minutes
@@ -447,8 +473,9 @@ export default function EnhancedLocationSelector() {
       // Alert for dangerously high water levels
       if (waterLevel > 2.5 && !alertShown.current) {
         alertShown.current = true;
-        const alertMessage = `ตรวจพบระดับน้ำสูงผิดปกติ ${waterLevel.toFixed(2)} ม. อาจเกิดน้ำท่วม`;
-        setEmergencyAlert(alertMessage);
+        console.warn(
+          `ตรวจพบระดับน้ำสูงผิดปกติ ${waterLevel.toFixed(2)} ม. อาจเกิดน้ำท่วม`,
+        );
         setTimeout(() => {
           alertShown.current = false;
         }, 300000); // Reset after 5 minutes
@@ -471,7 +498,7 @@ export default function EnhancedLocationSelector() {
 
       return () => clearInterval(intervalId);
     }
-  }, [currentTideData?.tideStatus, isHydrated]);
+  }, [currentTideData?.tideStatus, fetchForecastData, isHydrated]);
 
   if (!isHydrated) {
     return (
@@ -564,18 +591,18 @@ export default function EnhancedLocationSelector() {
                   onClick={() => setIsMapDialogOpen(true)}
                   variant="outline"
                   size="lg"
-                  className="bg-white/80 dark:bg-gray-800/80 hover:bg-blue-50 dark:hover:bg-gray-700 border-blue-200 dark:border-gray-600 h-12 touch-manipulation"
+                  className="bg-white/80 dark:bg-gray-800/80 hover:bg-blue-50 dark:hover:bg-gray-700 border-blue-200 dark:border-gray-600 h-12 touch-manipulation text-base font-bold"
                   aria-label="เลือกตำแหน่งจากแผนที่"
                 >
                   <Compass className="mr-2 h-5 w-5" aria-hidden="true" />
-                  <span className="font-medium">เลือกจากแผนที่</span>
+                  <span className="font-bold">เลือกจากแผนที่</span>
                 </Button>
                 <Button
                   onClick={getCurrentLocation}
                   disabled={gettingLocation}
                   variant="outline"
                   size="lg"
-                  className="bg-white/80 dark:bg-gray-800/80 hover:bg-green-50 dark:hover:bg-gray-700 border-green-200 dark:border-gray-600 h-12 touch-manipulation"
+                  className="bg-white/80 dark:bg-gray-800/80 hover:bg-green-50 dark:hover:bg-gray-700 border-green-200 dark:border-gray-600 h-12 touch-manipulation text-base font-bold"
                   aria-label="ใช้ตำแหน่งปัจจุบัน"
                 >
                   {gettingLocation ? (
@@ -586,9 +613,40 @@ export default function EnhancedLocationSelector() {
                   ) : (
                     <Navigation className="h-5 w-5 mr-2" aria-hidden="true" />
                   )}
-                  <span className="font-medium">ตำแหน่งปัจจุบัน</span>
+                  <span className="font-bold">ตำแหน่งปัจจุบัน</span>
                 </Button>
               </div>
+
+              {/* Geolocation Error Alert (dismissible) */}
+              {geoError && (
+                <div className="mt-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-1 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-red-700 dark:text-red-200 font-sans">{geoError}</p>
+                    <div className="mt-2 flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-sm bg-red-600 text-white hover:bg-red-700 h-9 px-3 rounded-md font-bold"
+                        onClick={() => {
+                          setGeoError(null);
+                          getCurrentLocation();
+                        }}
+                      >
+                        ลองอีกครั้ง
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-sm h-9 px-3 rounded-md font-bold"
+                        onClick={() => setGeoError(null)}
+                      >
+                        ยกเลิก
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Popular Locations - Responsive Pills */}
               <div className="space-y-3">
@@ -638,7 +696,7 @@ export default function EnhancedLocationSelector() {
                       <MapPin className="h-4 w-4" />
                       ตำแหน่งปัจจุบัน
                     </div>
-                    <div className="font-mono text-sm md:text-base font-semibold text-gray-900 dark:text-white">
+                    <div className="font-sans text-sm md:text-base font-semibold text-gray-900 dark:text-white">
                       {selectedLocation.lat.toFixed(6)},{" "}
                       {selectedLocation.lon.toFixed(6)}
                     </div>
@@ -658,12 +716,12 @@ export default function EnhancedLocationSelector() {
             <CardHeader className="pb-4">
               <CardTitle className="text-lg md:text-xl flex items-center gap-3">
                 <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
-                  <Clock
+                  <CalendarIcon
                     className="h-5 w-5 text-green-600 dark:text-green-400"
                     aria-hidden="true"
                   />
                 </div>
-                เลือกวันที่และเวลา
+                เลือกวันที่
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -687,15 +745,15 @@ export default function EnhancedLocationSelector() {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-start text-left bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-700 font-semibold text-lg"
+                        className="w-full justify-start text-left bg-white/90 dark:bg-gray-800/90 border-2 border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-gray-700 hover:border-green-400 dark:hover:border-green-600 transition-all h-12"
                         aria-labelledby={dateLabelId}
                         aria-haspopup="dialog"
                       >
                         <CalendarIcon
-                          className="mr-2 h-4 w-4"
+                          className="mr-3 h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0"
                           aria-hidden="true"
                         />
-                        <span className="truncate text-green-700 dark:text-green-300">
+                        <span className="truncate text-green-700 dark:text-green-300 font-bold text-base font-sans">
                           {selectedDate
                             ? format(selectedDate, "PPP", { locale: th })
                             : "วันนี้"}
@@ -716,118 +774,22 @@ export default function EnhancedLocationSelector() {
                   </Popover>
                 </div>
 
-                <div className="space-y-2">
-                  <Label
-                    id={hourLabelId}
-                    className="text-sm font-medium flex items-center gap-2"
-                  >
-                    <Clock
-                      className="h-4 w-4 text-green-600"
-                      aria-hidden="true"
-                    />
-                    ชั่วโมง
-                  </Label>
-                  <Popover open={isHourOpen} onOpenChange={setIsHourOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-700 font-semibold text-lg"
-                        aria-labelledby={hourLabelId}
-                        aria-haspopup="dialog"
-                      >
-                        <Clock className="mr-2 h-4 w-4" aria-hidden="true" />
-                        <span className="truncate text-green-700 dark:text-green-300">
-                          {selectedHour}:00
-                        </span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-2" align="start">
-                      <div className="grid grid-cols-6 gap-2">
-                        {Array.from({ length: 24 }, (_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => {
-                              setSelectedHour(i.toString().padStart(2, "0"));
-                              setIsHourOpen(false);
-                            }}
-                            className={cn(
-                              "p-2 rounded-lg text-sm font-semibold transition-all",
-                              selectedHour === i.toString().padStart(2, "0")
-                                ? "bg-green-600 text-white"
-                                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600",
-                            )}
-                          >
-                            {i.toString().padStart(2, "0")}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    id={minuteLabelId}
-                    className="text-sm font-medium flex items-center gap-2"
-                  >
-                    <Clock
-                      className="h-4 w-4 text-green-600"
-                      aria-hidden="true"
-                    />
-                    นาที
-                  </Label>
-                  <Popover open={isMinuteOpen} onOpenChange={setIsMinuteOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left bg-white/80 dark:bg-gray-800/80 border-green-200 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-700 font-semibold text-lg"
-                        aria-labelledby={minuteLabelId}
-                        aria-haspopup="dialog"
-                      >
-                        <Clock className="mr-2 h-4 w-4" aria-hidden="true" />
-                        <span className="truncate text-green-700 dark:text-green-300">
-                          :{selectedMinute}
-                        </span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-2" align="start">
-                      <div className="grid grid-cols-2 gap-2">
-                        {["00", "15", "30", "45"].map((minute) => (
-                          <button
-                            key={minute}
-                            onClick={() => {
-                              setSelectedMinute(minute);
-                              setIsMinuteOpen(false);
-                            }}
-                            className={cn(
-                              "p-3 rounded-lg text-sm font-semibold transition-all",
-                              selectedMinute === minute
-                                ? "bg-green-600 text-white"
-                                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600",
-                            )}
-                          >
-                            :{minute}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                {/* single date picker occupies this grid; duplicate removed */}
               </div>
 
-              {/* Selected Time Display */}
+              {/* Selected Date Display */}
               <div className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 rounded-lg p-4 border-2 border-green-300 dark:border-green-700/60 shadow-sm">
                 <div className="flex items-center justify-center gap-3">
-                  <Clock
+                  <CalendarIcon
                     className="h-6 w-6 text-green-600 dark:text-green-400"
                     aria-hidden="true"
                   />
                   <div className="text-center">
-                    <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold uppercase tracking-wide">
-                      เวลาที่เลือก
+                    <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold uppercase tracking-wide font-sans">
+                      วันที่ที่เลือก
                     </p>
-                    <p className="text-3xl font-bold text-green-700 dark:text-green-300 font-mono">
-                      {selectedHour}:{selectedMinute}
+                    <p className="text-base font-bold text-green-700 dark:text-green-300 font-sans">
+                      {selectedDate ? format(selectedDate, "PPP", { locale: th }) : "วันนี้"}
                     </p>
                   </div>
                 </div>
@@ -1032,7 +994,7 @@ export default function EnhancedLocationSelector() {
                           <div className="text-xs text-blue-100 font-medium mb-1">
                             พิกัด
                           </div>
-                          <div className="text-sm md:text-base font-mono font-bold truncate">
+                          <div className="text-sm md:text-base font-sans font-bold truncate">
                             {selectedLocation.lat.toFixed(2)}° N
                           </div>
                         </div>
@@ -1331,7 +1293,7 @@ export default function EnhancedLocationSelector() {
                               <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                                 พิกัด
                               </div>
-                              <div className="font-mono text-sm text-gray-700 dark:text-gray-300">
+                              <div className="font-sans text-sm text-gray-700 dark:text-gray-300">
                                 <div>{nearestPierInfo.lat.toFixed(4)}° N</div>
                                 <div>{nearestPierInfo.lon.toFixed(4)}° E</div>
                               </div>
@@ -1352,9 +1314,9 @@ export default function EnhancedLocationSelector() {
                     </Card>
                   )}
 
-                  {/* Full-Day Tide Table */}
-                  {currentTideData.tideEvents &&
-                    currentTideData.tideEvents.length > 0 && (
+                  {/* Full-Day Hourly Tide Table */}
+                  {currentTideData.graphData &&
+                    currentTideData.graphData.length > 0 && (
                       <Card className="shadow-lg border-0">
                         <CardHeader className="pb-4">
                           <CardTitle className="text-xl flex items-center gap-3">
@@ -1364,69 +1326,81 @@ export default function EnhancedLocationSelector() {
                                 aria-hidden="true"
                               />
                             </div>
-                            กิจกรรมน้ำขึ้นน้ำลงในวันนี้
+                            ระดับน้ำทุกชั่วโมง (24 ชั่วโมง)
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="border-b-2 border-gray-300 dark:border-gray-600">
-                                  <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
-                                    เวลา
+                                <tr className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/40 border-b-2 border-blue-300 dark:border-blue-700">
+                                  <th className="text-left py-4 px-4 font-bold text-blue-900 dark:text-blue-100 text-base">
+                                    ⏰ เวลา
                                   </th>
-                                  <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
-                                    ประเภท
+                                  <th className="text-right py-4 px-4 font-bold text-blue-900 dark:text-blue-100 text-base">
+                                    📊 ระดับน้ำ (ม.)
                                   </th>
-                                  <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
-                                    ระดับน้ำ (ม.)
-                                  </th>
-                                  <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
-                                    สถานะ
+                                  <th className="text-center py-4 px-4 font-bold text-blue-900 dark:text-blue-100 text-base">
+                                    🎯 สถานะ
                                   </th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {currentTideData.tideEvents
-                                  .slice(0, 24)
-                                  .map((event, idx) => (
-                                    <tr
-                                      key={idx}
-                                      className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                                    >
-                                      <td className="py-3 px-4 font-mono font-semibold text-gray-900 dark:text-white">
-                                        {event.time}
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        <Badge
-                                          className={cn(
-                                            "px-2 py-1 text-xs font-semibold",
-                                            event.type === "high"
-                                              ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                                              : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
-                                          )}
-                                        >
-                                          {event.type === "high"
-                                            ? "↑ ขึ้น"
-                                            : "↓ ลง"}
-                                        </Badge>
-                                      </td>
-                                      <td className="py-3 px-4 text-right font-bold text-gray-900 dark:text-white">
-                                        {event.level.toFixed(2)}
-                                      </td>
-                                      <td className="py-3 px-4 text-center">
-                                        {event.prediction ? (
-                                          <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs">
-                                            ทำนาย
-                                          </Badge>
-                                        ) : (
-                                          <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs">
-                                            ทั่วไป
-                                          </Badge>
+                                {currentTideData.graphData.map(
+                                  (dataPoint, idx) => {
+                                    // Check if this hour has a significant tide event
+                                    const isHighTide =
+                                      currentTideData.highTideTime ===
+                                      dataPoint.time;
+                                    const isLowTide =
+                                      currentTideData.lowTideTime ===
+                                      dataPoint.time;
+
+                                    return (
+                                      <tr
+                                        key={idx}
+                                        className={cn(
+                                          "border-b border-gray-200 dark:border-gray-700 hover:shadow-md transition-all hover:scale-[1.01]",
+                                          isHighTide &&
+                                            "bg-gradient-to-r from-red-50 to-red-100/50 dark:from-red-900/20 dark:to-red-900/10 border-red-200 dark:border-red-700/50",
+                                          isLowTide &&
+                                            "bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-700/50",
                                         )}
-                                      </td>
-                                    </tr>
-                                  ))}
+                                      >
+                                        <td className="py-4 px-4 font-sans font-bold text-gray-900 dark:text-white text-lg">
+                                          {dataPoint.time}
+                                        </td>
+                                        <td className="py-4 px-4 text-right font-bold text-gray-900 dark:text-white text-lg">
+                                          {dataPoint.level.toFixed(2)}
+                                        </td>
+                                        <td className="py-4 px-4 text-center">
+                                          {isHighTide ? (
+                                            <Badge className="bg-gradient-to-r from-red-200 to-red-300 dark:from-red-900 dark:to-red-800 text-red-900 dark:text-red-100 text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                                              ↑ สูงสุด
+                                            </Badge>
+                                          ) : isLowTide ? (
+                                            <Badge className="bg-gradient-to-r from-blue-200 to-blue-300 dark:from-blue-900 dark:to-blue-800 text-blue-900 dark:text-blue-100 text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                                              ↓ ต่ำสุด
+                                            </Badge>
+                                          ) : (
+                                            <Badge
+                                              className={cn(
+                                                "text-xs font-bold px-3 py-1.5 rounded-full shadow-sm",
+                                                dataPoint.prediction
+                                                  ? "bg-gradient-to-r from-green-200 to-green-300 dark:from-green-900 dark:to-green-800 text-green-900 dark:text-green-100"
+                                                  : "bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 text-gray-900 dark:text-gray-100",
+                                              )}
+                                            >
+                                              {dataPoint.prediction
+                                                ? "📈 ทำนาย"
+                                                : "✓ ข้อมูล"}
+                                            </Badge>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  },
+                                )}
                               </tbody>
                             </table>
                           </div>

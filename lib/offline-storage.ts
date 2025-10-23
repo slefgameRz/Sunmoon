@@ -12,14 +12,14 @@ export interface CacheEntry<T> {
 }
 
 export interface OfflineDataStore {
-  tideData: Map<string, CacheEntry<any>>;
-  weatherData: Map<string, CacheEntry<any>>;
-  locations: Map<string, CacheEntry<any>>;
-  piers: Map<string, CacheEntry<any>>;
+  tideData: Map<string, CacheEntry<unknown>>;
+  weatherData: Map<string, CacheEntry<unknown>>;
+  locations: Map<string, CacheEntry<unknown>>;
+  piers: Map<string, CacheEntry<unknown>>;
 }
 
-const STORAGE_PREFIX = 'sunmoon_';
-const CURRENT_VERSION = '1.0.0';
+const STORAGE_PREFIX = "sunmoon_";
+const CURRENT_VERSION = "1.0.0";
 const DEFAULT_CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 const LOCATION_CACHE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_STORAGE_SIZE = 5 * 1024 * 1024; // 5MB limit
@@ -28,12 +28,12 @@ const MAX_STORAGE_SIZE = 5 * 1024 * 1024; // 5MB limit
  * Get storage key for a location and date combination
  */
 export function getStorageKey(
-  type: 'tide' | 'weather' | 'location' | 'pier',
+  type: "tide" | "weather" | "location" | "pier",
   lat: number,
   lon: number,
   date?: Date,
 ): string {
-  const dateStr = date ? date.toISOString().split('T')[0] : 'current';
+  const dateStr = date ? date.toISOString().split("T")[0] : "current";
   const latStr = lat.toFixed(4);
   const lonStr = lon.toFixed(4);
   return `${STORAGE_PREFIX}${type}_${latStr}_${lonStr}_${dateStr}`;
@@ -91,7 +91,7 @@ export function saveToCache<T>(
     localStorage.setItem(key, serialized);
     return true;
   } catch (error) {
-    console.error('Error saving to cache:', error);
+    console.error("Error saving to cache:", error);
     // Handle QuotaExceededError by clearing old entries
     if (error instanceof DOMException && error.code === 22) {
       clearOldestCacheEntries();
@@ -105,7 +105,7 @@ export function saveToCache<T>(
         localStorage.setItem(key, JSON.stringify(entry));
         return true;
       } catch (retryError) {
-        console.error('Error saving to cache after cleanup:', retryError);
+        console.error("Error saving to cache after cleanup:", retryError);
         return false;
       }
     }
@@ -116,10 +116,7 @@ export function saveToCache<T>(
 /**
  * Load data from localStorage
  */
-export function loadFromCache<T>(
-  key: string,
-  maxAgeMs?: number,
-): T | null {
+export function loadFromCache<T>(key: string, maxAgeMs?: number): T | null {
   try {
     const stored = localStorage.getItem(key);
     if (!stored) return null;
@@ -132,8 +129,8 @@ export function loadFromCache<T>(
     }
 
     return entry.data;
-  } catch (error) {
-    console.error('Error loading from cache:', error);
+  } catch {
+    console.error("Error loading from cache");
     return null;
   }
 }
@@ -152,20 +149,21 @@ export function clearExpiredCacheEntries(): number {
         try {
           const stored = localStorage.getItem(key);
           if (stored) {
-            const entry: CacheEntry<any> = JSON.parse(stored);
+            const entry: CacheEntry<unknown> = JSON.parse(stored);
             if (entry.expiresAt && now > entry.expiresAt) {
               localStorage.removeItem(key);
               clearedCount++;
             }
           }
-        } catch (error) {
+        } catch {
           // Skip invalid entries
+          // eslint-disable-next-line no-continue
           continue;
         }
       }
     }
-  } catch (error) {
-    console.error('Error clearing expired cache entries:', error);
+  } catch {
+    console.error("Error clearing expired cache entries");
   }
 
   return clearedCount;
@@ -184,11 +182,12 @@ function clearOldestCacheEntries(count: number = 10): void {
         try {
           const stored = localStorage.getItem(key);
           if (stored) {
-            const entry: CacheEntry<any> = JSON.parse(stored);
+            const entry: CacheEntry<unknown> = JSON.parse(stored);
             entries.push({ key, timestamp: entry.timestamp });
           }
-        } catch (error) {
+        } catch {
           // Skip invalid entries
+          // eslint-disable-next-line no-continue
           continue;
         }
       }
@@ -199,8 +198,8 @@ function clearOldestCacheEntries(count: number = 10): void {
     for (let i = 0; i < Math.min(count, entries.length); i++) {
       localStorage.removeItem(entries[i].key);
     }
-  } catch (error) {
-    console.error('Error clearing oldest cache entries:', error);
+  } catch {
+    console.error("Error clearing oldest cache entries");
   }
 }
 
@@ -211,9 +210,9 @@ export function saveTideDataCache(
   lat: number,
   lon: number,
   date: Date | undefined,
-  tideData: any,
+  tideData: unknown,
 ): boolean {
-  const key = getStorageKey('tide', lat, lon, date);
+  const key = getStorageKey("tide", lat, lon, date);
   return saveToCache(key, tideData, DEFAULT_CACHE_DURATION_MS);
 }
 
@@ -224,8 +223,8 @@ export function loadTideDataCache(
   lat: number,
   lon: number,
   date: Date | undefined,
-): any {
-  const key = getStorageKey('tide', lat, lon, date);
+): unknown {
+  const key = getStorageKey("tide", lat, lon, date);
   return loadFromCache(key, DEFAULT_CACHE_DURATION_MS);
 }
 
@@ -235,17 +234,17 @@ export function loadTideDataCache(
 export function saveWeatherDataCache(
   lat: number,
   lon: number,
-  weatherData: any,
+  weatherData: unknown,
 ): boolean {
-  const key = getStorageKey('weather', lat, lon);
+  const key = getStorageKey("weather", lat, lon);
   return saveToCache(key, weatherData, 3 * 60 * 60 * 1000); // 3 hours
 }
 
 /**
  * Load weather data from cache
  */
-export function loadWeatherDataCache(lat: number, lon: number): any {
-  const key = getStorageKey('weather', lat, lon);
+export function loadWeatherDataCache(lat: number, lon: number): unknown {
+  const key = getStorageKey("weather", lat, lon);
   return loadFromCache(key, 3 * 60 * 60 * 1000);
 }
 
@@ -256,21 +255,17 @@ export function saveLocationCache(
   lat: number,
   lon: number,
   name: string,
-  location: any,
+  location: unknown,
 ): boolean {
-  const key = getStorageKey('location', lat, lon);
-  return saveToCache(
-    key,
-    { ...location, name },
-    LOCATION_CACHE_DURATION_MS,
-  );
+  const key = getStorageKey("location", lat, lon);
+  return saveToCache(key, { ...location, name }, LOCATION_CACHE_DURATION_MS);
 }
 
 /**
  * Load location from cache
  */
-export function loadLocationCache(lat: number, lon: number): any {
-  const key = getStorageKey('location', lat, lon);
+export function loadLocationCache(lat: number, lon: number): unknown {
+  const key = getStorageKey("location", lat, lon);
   return loadFromCache(key, LOCATION_CACHE_DURATION_MS);
 }
 
@@ -280,17 +275,17 @@ export function loadLocationCache(lat: number, lon: number): any {
 export function savePierCache(
   lat: number,
   lon: number,
-  nearestPier: any,
+  nearestPier: unknown,
 ): boolean {
-  const key = getStorageKey('pier', lat, lon);
+  const key = getStorageKey("pier", lat, lon);
   return saveToCache(key, nearestPier, 30 * 24 * 60 * 60 * 1000); // 30 days
 }
 
 /**
  * Load pier data from cache
  */
-export function loadPierCache(lat: number, lon: number): any {
-  const key = getStorageKey('pier', lat, lon);
+export function loadPierCache(lat: number, lon: number): unknown {
+  const key = getStorageKey("pier", lat, lon);
   return loadFromCache(key, 30 * 24 * 60 * 60 * 1000);
 }
 
@@ -315,17 +310,17 @@ export function getCacheStats(): {
     const keys = Object.keys(localStorage);
     for (const key of keys) {
       if (key.startsWith(STORAGE_PREFIX)) {
-        const data = localStorage.getItem(key) || '';
+        const data = localStorage.getItem(key) || "";
         totalSize += data.length;
 
-        if (key.includes('_tide_')) tideCount++;
-        else if (key.includes('_weather_')) weatherCount++;
-        else if (key.includes('_location_')) locationCount++;
-        else if (key.includes('_pier_')) pierCount++;
+        if (key.includes("_tide_")) tideCount++;
+        else if (key.includes("_weather_")) weatherCount++;
+        else if (key.includes("_location_")) locationCount++;
+        else if (key.includes("_pier_")) pierCount++;
       }
     }
   } catch (error) {
-    console.error('Error calculating cache stats:', error);
+    console.error("Error calculating cache stats:", error);
   }
 
   return {
@@ -350,7 +345,7 @@ export function clearAllCache(): void {
       }
     }
   } catch (error) {
-    console.error('Error clearing cache:', error);
+    console.error("Error clearing cache:", error);
   }
 }
 
@@ -374,9 +369,9 @@ export function migrateCache(): void {
   try {
     const keys = Object.keys(localStorage);
     for (const key of keys) {
-      if (key.startsWith('sunmoon_') && !key.startsWith(STORAGE_PREFIX)) {
+      if (key.startsWith("sunmoon_") && !key.startsWith(STORAGE_PREFIX)) {
         const oldKey = key;
-        const newKey = key.replace('sunmoon_', STORAGE_PREFIX);
+        const newKey = key.replace("sunmoon_", STORAGE_PREFIX);
 
         const data = localStorage.getItem(oldKey);
         if (data) {
@@ -388,7 +383,7 @@ export function migrateCache(): void {
               localStorage.setItem(newKey, data);
             } else {
               // Old format, wrap in new structure
-              const entry: CacheEntry<any> = {
+              const entry: CacheEntry<unknown> = {
                 data: parsed,
                 timestamp: Date.now(),
                 version: CURRENT_VERSION,
@@ -398,14 +393,14 @@ export function migrateCache(): void {
             if (oldKey !== newKey) {
               localStorage.removeItem(oldKey);
             }
-          } catch (error) {
-            console.error('Error migrating cache entry:', error);
+          } catch {
+            console.error("Error migrating cache entry");
           }
         }
       }
     }
-  } catch (error) {
-    console.error('Error during cache migration:', error);
+  } catch {
+    console.error("Error during cache migration");
   }
 }
 
@@ -425,11 +420,11 @@ export function initializeOfflineStorage(): void {
 
     // Log cache stats
     const stats = getCacheStats();
-    console.log('Offline storage initialized:', {
+    console.log("Offline storage initialized:", {
       ...stats,
       approximateSize: formatCacheSize(stats.approximateSize),
     });
   } catch (error) {
-    console.error('Error initializing offline storage:', error);
+    console.error("Error initializing offline storage:", error);
   }
 }

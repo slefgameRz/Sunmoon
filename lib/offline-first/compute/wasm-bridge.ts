@@ -13,7 +13,8 @@ export async function loadWasmEngine(): Promise<WasmEngine | null> {
     if (typeof window === "undefined") return null
 
     try {
-      // Placeholder: load WASM bundle when available.
+      // WASM engine for high-performance tide calculations
+      // Currently using JavaScript fallback implementation
       return null
     } catch (error) {
       console.warn("Failed to initialize WASM engine:", error)

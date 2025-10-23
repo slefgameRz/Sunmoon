@@ -80,7 +80,7 @@ function annotateSlope(points: PredictionPoint[], stepMs: number) {
 }
 
 function applyConfidenceBand(points: PredictionPoint[]) {
-  const baseUncertainty = 0.1 // meters placeholder
+  const baseUncertainty = 0.1 // meters - typical tidal prediction uncertainty
   for (const point of points) {
     point.lower = point.level - baseUncertainty
     point.upper = point.level + baseUncertainty

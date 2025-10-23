@@ -17,29 +17,32 @@ export interface PierLocation {
  * Includes major fishing piers, commercial ports, and ferry terminals
  */
 export const THAI_PIERS: PierLocation[] = [
-  // ท่าเรือประมาณการ/เพาะปลา
-  { name: 'ท่าเรือประมาณการ ปักษ์อุตรดิตถ์', lat: 13.7563, lon: 100.5018, region: 'กรุงเทพมหานคร', type: 'fishing' },
-  { name: 'ท่าเรือประมาณการ พัทยา', lat: 12.9236, lon: 100.8783, region: 'ชลบุรี', type: 'fishing' },
-  { name: 'ท่าเรือประมาณการ หัวหิน', lat: 11.2567, lon: 99.9534, region: 'ประจวบคีรีขันธ์', type: 'fishing' },
-
-  // ท่าเรือเชิงสมุทร/ท่าท่องเที่ยว
-  { name: 'ท่าเรือเชิงสมุทร ภูเก็ต', lat: 7.8804, lon: 98.3923, region: 'ภูเก็ต', type: 'ferry' },
-  { name: 'ท่าเรือโก้ะเก๋า เกาะสมุย', lat: 9.1378, lon: 99.3328, region: 'สุราษฎร์ธานี', type: 'ferry' },
-  { name: 'ท่าเรือเตอร์มินัล ท่องเที่ยว ภูเก็ต', lat: 7.8867, lon: 98.4045, region: 'ภูเก็ต', type: 'resort' },
-
-  // ท่าเรือการค้า
-  { name: 'ท่าเรือกรุงเทพ (ท่า 3)', lat: 13.6333, lon: 100.6167, region: 'กรุงเทพมหานคร', type: 'commercial' },
-  { name: 'ท่าเรือแหลมฉบัง', lat: 12.7833, lon: 101.0167, region: 'ชลบุรี', type: 'commercial' },
-
-  // ท่าเรืออื่น ๆ
-  { name: 'ท่าเรือเกาะช้าง', lat: 9.9673, lon: 99.0515, region: 'ตราด', type: 'ferry' },
-  { name: 'ท่าเรือกระบี่ (อ่าวนาง)', lat: 8.4304, lon: 99.9588, region: 'กระบี่', type: 'ferry' },
+  // ท่าเรือประมง ฝั่งอ่าวไทยตอนใน
+  { name: 'ท่าเรือประมงมหาชัย', lat: 13.5333, lon: 100.2667, region: 'สมุทรสาคร', type: 'fishing' },
+  { name: 'ท่าเรือประมงปากน้ำ', lat: 13.5922, lon: 100.6028, region: 'สมุทรปราการ', type: 'fishing' },
+  { name: 'ท่าเรือประมงพัทยา', lat: 12.9236, lon: 100.8783, region: 'ชลบุรี', type: 'fishing' },
+  { name: 'ท่าเรือสีชัง', lat: 13.1500, lon: 100.8170, region: 'ชลบุรี', type: 'ferry' },
   { name: 'ท่าเรือบางแสน', lat: 13.3611, lon: 100.9847, region: 'ชลบุรี', type: 'fishing' },
-  { name: 'ท่าเรือหาดใหญ่', lat: 7.2906, lon: 100.2788, region: 'สงขลา', type: 'fishing' },
-  { name: 'ท่าเรือตากใจ', lat: 8.4304, lon: 99.9588, region: 'กระบี่', type: 'resort' },
-  { name: 'ท่าเรือพังงา', lat: 8.4667, lon: 98.5278, region: 'พังงา', type: 'ferry' },
-  { name: 'ท่าเรือสตูล', lat: 6.6167, lon: 100.2667, region: 'สตูล', type: 'fishing' },
-  { name: 'ท่าเรือเตรียมพัฒนา พระแสง', lat: 9.5, lon: 99.5, region: 'จันทบุรี', type: 'commercial' },
+  
+  // ท่าเรือการค้า
+  { name: 'ท่าเรือกรุงเทพ (คลองเตย)', lat: 13.7000, lon: 100.5833, region: 'กรุงเทพมหานคร', type: 'commercial' },
+  { name: 'ท่าเรือแหลมฉบัง', lat: 12.7833, lon: 101.0167, region: 'ชลบุรี', type: 'commercial' },
+  { name: 'ท่าเรือมาบตาพุด', lat: 12.6833, lon: 101.2833, region: 'ระยอง', type: 'commercial' },
+  { name: 'ท่าเรือสงขลา', lat: 7.1869, lon: 100.5967, region: 'สงขลา', type: 'commercial' },
+
+  // ท่าเรือฝั่งอ่าวไทยตอนล่าง
+  { name: 'ท่าเรือประมงชุมพร', lat: 10.4930, lon: 99.1800, region: 'ชุมพร', type: 'fishing' },
+  { name: 'ท่าเรือประมงสุราษฎร์ธานี', lat: 9.1380, lon: 99.3330, region: 'สุราษฎร์ธานี', type: 'fishing' },
+  { name: 'ท่าเรือดอนสัก (สมุย)', lat: 9.5280, lon: 99.9853, region: 'สุราษฎร์ธานี', type: 'ferry' },
+  { name: 'ท่าเรือเกาะสมุย', lat: 9.5167, lon: 100.0500, region: 'สุราษฎร์ธานี', type: 'ferry' },
+
+  // ท่าเรือฝั่งอันดามัน
+  { name: 'ท่าเรือภูเก็ต (ท่าเรือน้ำลึก)', lat: 7.8919, lon: 98.3964, region: 'ภูเก็ต', type: 'commercial' },
+  { name: 'ท่าเรือกระบี่ (อ่าวนาง)', lat: 8.0367, lon: 98.9069, region: 'กระบี่', type: 'ferry' },
+  { name: 'ท่าเรือระนอง', lat: 9.9556, lon: 98.6264, region: 'ระนอง', type: 'ferry' },
+  { name: 'ท่าเรือประมงตรัง', lat: 7.5089, lon: 99.6119, region: 'ตรัง', type: 'fishing' },
+  { name: 'ท่าเรือสตูล', lat: 6.6239, lon: 99.8219, region: 'สตูล', type: 'ferry' },
+  { name: 'ท่าเรือตากใบ (เกาะลันตา)', lat: 7.5667, lon: 99.0500, region: 'กระบี่', type: 'ferry' },
 ];
 
 /**
@@ -200,10 +203,10 @@ export function getPierTypeIcon(type: PierLocation['type']): string {
  */
 export function getPierTypeText(type: PierLocation['type']): string {
   const typeMap = {
-    'fishing': 'ท่าเรือประมาณการ',
+    'fishing': 'ท่าเรือประมง',
     'commercial': 'ท่าเรือการค้า',
-    'ferry': 'ท่าท่องเที่ยว/เฟอร์รี่',
-    'resort': 'ท่าท่องเที่ยวรีสอร์ต',
+    'ferry': 'ท่าเรือเฟอร์รี่',
+    'resort': 'ท่าท่องเที่ยว',
   };
   return typeMap[type];
 }

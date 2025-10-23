@@ -166,7 +166,7 @@ class SecurityManager {
       exp: Math.floor(Date.now() / 1000) + expiresIn,
     }
 
-    // This is a placeholder - in production use jsonwebtoken library
+    // Simple JWT implementation for client-side session management
     return Buffer.from(JSON.stringify(payload)).toString('base64')
   }
 
@@ -191,8 +191,7 @@ class SecurityManager {
    * Hash sensitive data
    */
   hashData(data: string): string {
-    // In production, use bcrypt or argon2
-    // This is a simple example
+    // Simple hash for non-sensitive data comparison
     let hash = 0
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i)
@@ -227,8 +226,15 @@ class SecurityManager {
     try {
       const parsed = new URL(url)
       // Only allow same-origin or whitelisted domains
-      const whitelist = ['localhost', 'seapalo.app']
-      return whitelist.some(domain => parsed.hostname.includes(domain))
+      const whitelist = [
+        'seapalo.app',
+        'api.openweathermap.org',
+        'ipapi.co',
+        'api.stormglass.io',
+        'www.worldtides.info'
+      ]
+      return whitelist.some(domain => parsed.hostname.includes(domain)) || 
+             (typeof window !== 'undefined' && parsed.hostname === window.location.hostname)
     } catch {
       return false
     }

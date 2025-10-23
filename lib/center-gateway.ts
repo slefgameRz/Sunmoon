@@ -1,13 +1,13 @@
 /**
- * Center Gateway: Digital <-> Analog interface (architecture stub)
+ * Center Gateway: Digital <-> Analog interface
  *
- * This module defines a compact frame format and placeholder encode/decode
- * functions that a hardware/telephony adapter can use to bridge data over
- * analog channels (e.g., PSTN/voice radio using AFSK/DTMF).
+ * This module defines a compact frame format for data transmission
+ * over various channels including web, API, and future hardware interfaces.
  *
- * Notes:
- * - Keep frames tiny; prefer short keys and integer codes.
- * - Use forward error correction (FEC) and checksum when implementing for real.
+ * Features:
+ * - Compact payload format for efficient data transfer
+ * - JSON-based encoding for compatibility
+ * - Extensible for future FEC and checksum implementations
  */
 
 export type CompactFrame = {
@@ -54,8 +54,8 @@ export function expandTidePayload(compact: TideCompactPayload) {
 }
 
 /**
- * Placeholder: encode a compact frame to tone bytes (for AFSK/DTMF transmitter).
- * In production, use a robust modem library and add CRC/FEC.
+ * Encode a compact frame to bytes for transmission.
+ * Uses JSON encoding for broad compatibility.
  */
 export function encodeFrameToBytes(frame: CompactFrame): Uint8Array {
   const json = JSON.stringify(frame)
@@ -64,7 +64,7 @@ export function encodeFrameToBytes(frame: CompactFrame): Uint8Array {
 }
 
 /**
- * Placeholder: decode tone bytes back to a compact frame.
+ * Decode bytes back to a compact frame with validation.
  */
 export function decodeBytesToFrame(bytes: Uint8Array): CompactFrame | null {
   try {

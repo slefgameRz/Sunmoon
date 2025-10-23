@@ -201,45 +201,72 @@ if (event.type === 'postback') {
 
 ## 💬 Response Formats
 
-### Format 1: Simple Text with Emojis
+### Format 1: Brief Summary (LINE Quick View)
+
+**Philosophy:** Show only essential info for quick viewing on mobile. Users can tap to see detailed data on web.
 
 ```typescript
 const message = {
   type: 'text',
-  text: `🌊 น้ำ: ${forecast.tide}
-🌡️ อุณหภูมิ: ${forecast.temp}°C
-💨 ลมแรง: ${forecast.wind} m/s
-⏰ เวลา: ${new Date().toLocaleTimeString('th-TH')}`
+  text: `🌊 ${location.name}
+────────────
+⬆️ น้ำ | 🌡️ 28°C | 💨 3 m/s
+────────────
+🔗 ดูละเอียด: [Link to Web]`
 }
 ```
 
-### Format 2: Rich Menu with Buttons
+**Advantages:**
+- ✅ Fits mobile screen instantly
+- ✅ No scrolling needed
+- ✅ Quick decision making
+- ✅ Less data usage
+- ✅ Professional appearance
+
+**Format Explanation:**
+```
+🌊 ภูเก็ต              ← Location with emoji
+────────────
+⬆️ น้ำ | 28°C | 3 m/s   ← Key metrics in one line
+────────────
+🔗 ดูละเอียด           ← Link to detailed web page
+```
+
+### Format 2: Rich Menu with Quick Actions
+
+Quick buttons to get brief summaries or view full details.
 
 ```typescript
 const message = {
   type: 'template',
-  altText: 'ข้อมูลสภาอากาศ',
+  altText: 'เลือกข้อมูล',
   template: {
     type: 'buttons',
     title: '📊 เลือกข้อมูล',
-    text: 'คุณต้องการข้อมูลอะไร?',
+    text: 'คุณต้องการอะไร?',
     actions: [
       {
         type: 'postback',
-        label: '🌊 ทำนายน้ำ',
-        data: 'action=tide&lat=6.8495&lon=101.9674'
+        label: '⚡ สรุป',
+        data: 'action=brief&lat=6.8495&lon=101.9674'
       },
       {
-        type: 'postback',
-        label: '🌤️ สภาอากาศ',
-        data: 'action=weather&lat=6.8495&lon=101.9674'
+        type: 'uri',
+        label: '� ดูละเอียด',
+        uri: 'https://yourdomain.com/forecast?lat=6.8495&lon=101.9674'
       }
     ]
   }
 }
 ```
 
-### Format 3: Carousel (Multiple Cards)
+**Key Points:**
+- 📱 "⚡ สรุป" = Brief summary on LINE
+- 🌐 "🌐 ดูละเอียด" = Detailed data on web browser
+
+### Format 3: Carousel with Brief Cards
+
+Show multiple locations with brief summaries and web links.
 
 ```typescript
 const message = {
@@ -250,23 +277,23 @@ const message = {
     columns: [
       {
         title: '🏝️ ภูเก็ต',
-        subtitle: 'อ่าวนาง',
+        subtitle: '⬆️ น้ำ | 28°C | 3m/s',
         actions: [
           {
-            type: 'postback',
-            label: 'ดูข้อมูล',
-            data: 'action=full&lat=8.627&lon=98.398'
+            type: 'uri',
+            label: '📖 ดูละเอียด',
+            uri: 'https://yourdomain.com/forecast?location=phuket'
           }
         ]
       },
       {
         title: '🏖️ ระยอง',
-        subtitle: 'หาดแม่พิม',
+        subtitle: '⬇️ น้ำ | 29°C | 2m/s',
         actions: [
           {
-            type: 'postback',
-            label: 'ดูข้อมูล',
-            data: 'action=full&lat=6.849&lon=101.967'
+            type: 'uri',
+            label: '📖 ดูละเอียด',
+            uri: 'https://yourdomain.com/forecast?location=rayong'
           }
         ]
       }
@@ -275,9 +302,115 @@ const message = {
 }
 ```
 
+**Design Philosophy:**
+- Title + Brief subtitle (2-3 metrics)
+- One "ดูละเอียด" button linking to web
+- Mobile-optimized cards
+
 ---
 
-## 🗺️ Location Parsing
+## ⚡ Brief Summary Strategy
+
+### Why Brief?
+
+LINE is for **quick decisions**, not detailed reading:
+- ✅ Mobile experience (small screen)
+- ✅ Real-time decisions (fishermen need quick answers)
+- ✅ Low bandwidth (might be on poor signal)
+- ✅ Professional (not spammy walls of text)
+
+### LINE Summary Format
+
+```
+🌊 ภูเก็ต
+────────────
+⬆️ น้ำ | 28°C | 3 m/s
+────────────
+🔗 ดูละเอียด
+```
+
+**Contains:**
+- 📍 Location name with emoji
+- ⬆️⬇️ Tide status (up/down)
+- 🌡️ Temperature in °C
+- � Wind speed in m/s
+- 🔗 Link to web for full details
+
+### Web Page (Detailed)
+
+Users tap "🔗 ดูละเอียด" to see on web:
+- 📊 Complete forecast charts
+- 🌊 Detailed tide predictions (24-48 hours)
+- 🌤️ Hour-by-hour weather
+- 🧭 Wind direction diagrams
+- ⚠️ Alerts and warnings
+- 📈 Trends and patterns
+
+### User Flow
+
+```
+1. User sends message on LINE
+   "ทำนายน้ำ ภูเก็ต"
+       ↓
+2. Get brief summary (1 second!)
+   "🌊 ภูเก็ต ⬆️ | 28°C | 3m/s"
+       ↓
+3. If needs details, tap "ดูละเอียด"
+       ↓
+4. Browser opens detailed dashboard
+   (charts, predictions, alerts)
+```
+
+### Configuration
+
+```typescript
+// In formatForecastMessage()
+const BRIEF_MODE = true  // Always show brief on LINE
+
+if (BRIEF_MODE) {
+  return formatBriefMessage(forecast, location)  // 1 line + link
+} else {
+  return formatDetailedMessage(forecast, location)  // Full details
+}
+```
+
+---
+
+## 🔗 Web Integration
+
+### URL Structure for Web Links
+
+```
+// Brief summary click
+https://yourdomain.com/forecast?location=phuket&mode=brief
+
+// Detailed view
+https://yourdomain.com/forecast?location=phuket&mode=full
+
+// With coordinates
+https://yourdomain.com/forecast?lat=8.627&lon=98.398&mode=full
+```
+
+### Web Page Features
+
+**Quick View** (default):
+- 📊 Current conditions tile
+- ⬆️ Tide status with percentage
+- 🌡️ Temperature with trend
+- 💨 Wind with gust info
+- ⚠️ Any alerts
+
+**Detailed View** (on demand):
+- 📈 24-hour tide graph
+- 📅 7-day weather forecast
+- 🌊 Water conditions
+- 🌞 UV index
+- 🧭 Wind direction
+- 💧 Humidity graph
+
+---
+
+
 
 ### Thai Province/District Names
 

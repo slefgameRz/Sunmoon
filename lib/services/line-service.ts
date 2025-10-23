@@ -22,7 +22,6 @@ const LOCATION_MAP: Record<string, LocationData> = {
   'สงขลา': { lat: 7.1906, lon: 100.6087, name: 'สงขลา' },
   'พังงา': { lat: 8.4304, lon: 98.5298, name: 'พังงา' },
   'ตรัง': { lat: 7.5589, lon: 99.6259, name: 'ตรัง' },
-  'สตูล': { lat: 6.6288, lon: 100.0742, name: 'สตูล' },
 
   // Alternative names
   'เกาะสมุย': { lat: 8.6391, lon: 100.3348, name: 'เกาะสมุย' },
@@ -144,7 +143,9 @@ function parseLocationFromText(text: string): LocationData | null {
 }
 
 /**
- * Format forecast as LINE message
+ * Format forecast as LINE message (Brief Summary Mode)
+ * Shows only essential info for quick mobile viewing
+ * Users tap link to see detailed data on web
  */
 function formatForecastMessage(
   forecast: Record<string, unknown>,
@@ -164,31 +165,23 @@ function formatForecastMessage(
     ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>)?.speed
       ? ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>).speed
       : 'ไม่ทราบ'
-  const humidity =
-    (forecast.weatherData as Record<string, unknown>)?.main &&
-    ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)
-      ?.humidity !== undefined
-      ? ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)
-          .humidity
-      : 'ไม่ทราบ'
 
-  // Emoji based on status
+  // Brief format with emojis only (essential info on one line)
   const tideEmoji = tideStatus === 'น้ำขึ้น' ? '⬆️' : '⬇️'
-  const tempNumber = typeof temp === 'number' ? temp : 25
-  const tempEmoji = tempNumber > 30 ? '🔥' : tempNumber > 20 ? '🌤️' : '❄️'
+  const tempDisplay = typeof temp === 'number' ? Math.round(temp) : '?'
+  const windDisplay = typeof windSpeed === 'number' ? Math.round(windSpeed * 10) / 10 : '?'
+
+  // Build web link with coordinates
+  const webUrl = `https://${process.env.VERCEL_URL || 'yourdomain.com'}/forecast?lat=${location.lat}&lon=${location.lon}&mode=full`
 
   return {
     type: 'text',
-    text: `🌊 ข้อมูลสภาอากาศ\n\n` +
-          `📍 ${location.name}\n` +
+    text: `🌊 ${location.name}\n` +
           `────────────\n` +
-          `${tideEmoji} น้ำ: ${tideStatus}\n` +
-          `${tempEmoji} อุณหภูมิ: ${temp}°C\n` +
-          `💨 ลม: ${windSpeed} m/s\n` +
-          `💧 ความชื้น: ${humidity}%\n` +
+          `${tideEmoji} น้ำ | 🌡️ ${tempDisplay}°C | 💨 ${windDisplay}m/s\n` +
           `────────────\n` +
-          `🕐 อัปเดท: ${new Date().toLocaleTimeString('th-TH')}\n\n` +
-          `📌 ส่งจังหวัดอื่นหรือแชร์📍 GPS`
+          `� ดูละเอียด\n${webUrl}\n\n` +
+          `� ส่งจังหวัดอื่นหรือแชร์📍 GPS`
   }
 }
 
@@ -232,12 +225,10 @@ export async function sendWelcomeMessage(replyToken: string): Promise<void> {
     {
       type: 'text',
       text: '👋 สวัสดีครับ! ยินดีต้อนรับเข้าสู่ 🌊 Sunmoon\n\n' +
-            'เราให้ข้อมูลน้ำและสภาอากาศแบบ Real-time ' +
-            'สำหรับชาวประมงทั่วไทย\n\n' +
-            '📍 วิธีใช้:\n' +
-            '1️⃣ ส่งชื่อจังหวัด เช่น "ภูเก็ต"\n' +
-            '2️⃣ หรือแชร์📍 GPS ตำแหน่งของคุณ\n\n' +
-            '⚡ ข้อมูลจะมาในไม่กี่วินาที!'
+            '⚡ ส่งจังหวัดจะได้สรุปข้อมูลแบบด่วน\n' +
+            '📍 แชร์ GPS สำหรับพื้นที่อื่นๆ\n' +
+            '🔗 ดูละเอียดได้บนเว็บ\n\n' +
+            'ตัวอย่าง: ทำนายน้ำ ภูเก็ต'
     }
   ])
 }

@@ -136,11 +136,21 @@ async function handleTextMessage(event: LineEvent): Promise<void> {
     await sendLineMessage(event.replyToken, [
       {
         type: 'text',
-        text: '📍 กรุณาระบุจังหวัด เช่น:\n' +
-              '• ทำนายน้ำ ภูเก็ต\n' +
-              '• สภาพอากาศ ระยอง\n' +
-              '• ข้อมูล หาดใหญ่\n\n' +
-              'หรือแชร์📍 ตำแหน่ง GPS'
+        text: '🌊 ไม่พบจังหวัดที่ระบุ\n\n' +
+              '━━━━━━━━━━━━━━━━━━\n' +
+              '📍 จังหวัยที่รองรับ:\n\n' +
+              '🔵 ภาคใต้:\n' +
+              'ภูเก็ต • ระยอง • หาดใหญ่\n' +
+              'สตูล • ชุมพร • กระบี่\n' +
+              'สงขลา • พังงา • ตรัง\n\n' +
+              '🔵 ภาคตะวันออก:\n' +
+              'ชลบุรี • ระนอง • บันฉุง\n' +
+              'กำแพงแสน • เพชรบุรี • ประจวบฯ\n\n' +
+              '🔵 เกาะและอื่นๆ:\n' +
+              'เกาะสมุย • ชลบุรีศรีราชา\n\n' +
+              '━━━━━━━━━━━━━━━━━━\n' +
+              '💡 ลองใหม่: ทำนายน้ำ ชลบุรี\n' +
+              '📍 หรือแชร์ตำแหน่ง GPS'
       }
     ])
     return
@@ -215,6 +225,11 @@ function formatForecastMessage(
   const tideStatus =
     (forecast.tideData as Record<string, unknown>)?.waterLevelStatus ||
     'ไม่ทราบ'
+  const currentHeight =
+    (forecast.tideData as Record<string, unknown>)?.currentWaterLevel !== undefined
+      ? (forecast.tideData as Record<string, unknown>).currentWaterLevel
+      : null
+  
   const temp =
     (forecast.weatherData as Record<string, unknown>)?.main &&
     ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)
@@ -226,23 +241,52 @@ function formatForecastMessage(
     ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>)?.speed
       ? ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>).speed
       : 'ไม่ทราบ'
+  const humidity =
+    (forecast.weatherData as Record<string, unknown>)?.main &&
+    ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)?.humidity
+      ? ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>).humidity
+      : null
+  const description =
+    (forecast.weatherData as Record<string, unknown>)?.weather &&
+    Array.isArray((forecast.weatherData as Record<string, unknown>).weather)
+      ? ((forecast.weatherData as Record<string, unknown>).weather as Array<{ main: string }>)[0]?.main
+      : null
 
-  // Brief format with emojis only (essential info on one line)
-  const tideEmoji = tideStatus === 'น้ำขึ้น' ? '⬆️' : '⬇️'
+  // Improved format with better data display
+  const tideEmoji = tideStatus === 'น้ำขึ้น' ? '🔺' : '🔻'
+  const tideLabel = tideStatus === 'น้ำขึ้น' ? 'น้ำขึ้น' : 'น้ำลง'
   const tempDisplay = typeof temp === 'number' ? Math.round(temp) : '?'
   const windDisplay = typeof windSpeed === 'number' ? Math.round(windSpeed * 10) / 10 : '?'
+  const humidityDisplay = typeof humidity === 'number' ? humidity : '?'
 
+  // Get weather emoji based on description
+  const weatherEmoji = description
+    ? description.includes('Rain') || description.includes('rain')
+      ? '🌧️'
+      : description.includes('Cloud') || description.includes('cloud')
+        ? '☁️'
+        : description.includes('Clear') || description.includes('Sunny')
+          ? '☀️'
+          : '🌡️'
+    : '🌡️'
+
+  // Build height info if available
+  const heightInfo = typeof currentHeight === 'number' ? ` (${(currentHeight as number).toFixed(2)}ม.)` : ''
+  
   // Build web link with coordinates
   const webUrl = `https://${process.env.VERCEL_URL || 'yourdomain.com'}/forecast?lat=${location.lat}&lon=${location.lon}&mode=full`
 
+  // Improved message format
   return {
     type: 'text',
     text: `🌊 ${location.name}\n` +
-          `────────────\n` +
-          `${tideEmoji} น้ำ | 🌡️ ${tempDisplay}°C | 💨 ${windDisplay}m/s\n` +
-          `────────────\n` +
-          `� ดูละเอียด\n${webUrl}\n\n` +
-          `� ส่งจังหวัดอื่นหรือแชร์📍 GPS`
+          `━━━━━━━━━━━━━━━━\n` +
+          `${tideEmoji} ${tideLabel}${heightInfo}\n` +
+          `${weatherEmoji} ${tempDisplay}°C | 💨 ${windDisplay}m/s | 💧 ${humidityDisplay}%\n` +
+          `━━━━━━━━━━━━━━━━\n` +
+          `📊 ข้อมูลเต็ม: ${webUrl}\n\n` +
+          `💡 ส่ง: ทำนายน้ำ [จังหวัด]\n` +
+          `📍 หรือแชร์ GPS`
   }
 }
 
@@ -302,11 +346,17 @@ export async function sendWelcomeMessage(replyToken: string): Promise<void> {
   await sendLineMessage(replyToken, [
     {
       type: 'text',
-      text: '👋 สวัสดีครับ! ยินดีต้อนรับเข้าสู่ 🌊 Sunmoon\n\n' +
-            '⚡ ส่งจังหวัดจะได้สรุปข้อมูลแบบด่วน\n' +
-            '📍 แชร์ GPS สำหรับพื้นที่อื่นๆ\n' +
-            '🔗 ดูละเอียดได้บนเว็บ\n\n' +
-            'ตัวอย่าง: ทำนายน้ำ ภูเก็ต'
+      text: '👋 สวัสดี! ยินดีต้อนรับ 🌊 Sunmoon\n\n' +
+            '━━━━━━━━━━━━━━━━━━\n' +
+            '⚡ การใช้งาน:\n' +
+            '📝 ทำนายน้ำ [จังหวัด]\n' +
+            '   เช่น: ทำนายน้ำ ชลบุรี\n\n' +
+            '📍 แชร์ GPS\n' +
+            '   ระบบจะหาพื้นที่ให้อัตโนมัติ\n\n' +
+            '🔗 ดูข้อมูลเต็มได้บนเว็บ\n' +
+            '━━━━━━━━━━━━━━━━━━\n\n' +
+            '🎯 ระดับน้ำ • อุณหภูมิ • ลมและความชื้น\n' +
+            '💡 สำหรับชาวประมง ณ ทะเล'
     }
   ])
 }

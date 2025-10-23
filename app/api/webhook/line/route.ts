@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { handleLineMessage, sendWelcomeMessage } from '@/lib/services/line-service'
 
 /**
  * LINE Webhook API endpoint
@@ -48,15 +49,19 @@ export async function POST(request: NextRequest) {
 
     // Process each event
     for (const event of events) {
-      if (event.type === 'message' && event.message.type === 'text') {
-        const userId = event.source.userId
-        const messageText = event.message.text
-        // const replyToken = event.replyToken
-
-        console.log(`Received message from ${userId}: ${messageText}`)
-
-        // TODO: Implement message handling
-        // For now, just log the message
+      try {
+        if (event.type === 'message') {
+          console.log(`Received message from ${event.source.userId}`)
+          await handleLineMessage(event)
+        } else if (event.type === 'follow') {
+          console.log(`User ${event.source.userId} followed the bot`)
+          await sendWelcomeMessage(event.replyToken)
+        } else if (event.type === 'unfollow') {
+          console.log(`User ${event.source.userId} unfollowed the bot`)
+        }
+      } catch (eventError) {
+        console.error('Error processing individual event:', eventError)
+        // Continue processing other events
       }
     }
 

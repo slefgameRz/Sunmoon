@@ -13,6 +13,10 @@ import path from 'node:path'
 import { compactClient } from '@/lib/compression/compact-client'
 import type { LocationData } from '@/lib/tide-service'
 
+// In-memory cache for user's last selected location
+// In production, this should be stored in a database
+const userLocationCache = new Map<string, LocationData>()
+
 function resolveLineApiBaseUrl(): string {
   const raw = process.env.LINE_API_BASE_URL?.trim()
   if (!raw) return 'https://api.line.me'
@@ -89,6 +93,16 @@ interface LineEvent {
     title?: string
   }
   replyToken: string
+  source?: {
+    userId?: string
+  }
+}
+
+/**
+ * Get user ID from event
+ */
+function getUserId(event: LineEvent): string | null {
+  return event.source?.userId || null
 }
 
 /**
@@ -101,12 +115,14 @@ export async function handleLineMessage(event: LineEvent): Promise<void> {
       return
     }
 
+    const userId = getUserId(event)
+
     if (event.message.type === 'text') {
       console.log('📝 Processing text message')
-      await handleTextMessage(event)
+      await handleTextMessage(event, userId)
     } else if (event.message.type === 'location') {
       console.log('📍 Processing location message')
-      await handleLocationMessage(event)
+      await handleLocationMessage(event, userId)
     } else {
       console.log(`⚠️ Unsupported message type: ${event.message.type}`)
     }
@@ -128,9 +144,15 @@ export async function handleLineMessage(event: LineEvent): Promise<void> {
 /**
  * Handle text messages with location extraction
  */
-async function handleTextMessage(event: LineEvent): Promise<void> {
+async function handleTextMessage(event: LineEvent, userId: string | null): Promise<void> {
   const text = event.message?.text || ''
-  const location = parseLocationFromText(text)
+  let location = parseLocationFromText(text)
+
+  // If no location found and we have a Rich Menu button click, use last location
+  if (!location && userId && userLocationCache.has(userId)) {
+    console.log('💾 Using cached location from Rich Menu')
+    location = userLocationCache.get(userId) || null
+  }
 
   if (!location) {
     await sendLineMessage(event.replyToken, [
@@ -156,6 +178,12 @@ async function handleTextMessage(event: LineEvent): Promise<void> {
     return
   }
 
+  // Save location to cache
+  if (userId) {
+    userLocationCache.set(userId, location)
+    console.log(`💾 Saved location for user: ${location.name}`)
+  }
+
   // Fetch compact forecast
   const forecast = await compactClient.fetchCompactForecast(
     location.lat,
@@ -169,7 +197,7 @@ async function handleTextMessage(event: LineEvent): Promise<void> {
 /**
  * Handle location messages with GPS coordinates
  */
-async function handleLocationMessage(event: LineEvent): Promise<void> {
+async function handleLocationMessage(event: LineEvent, userId: string | null): Promise<void> {
   const msg = event.message
   if (!msg?.latitude || !msg?.longitude) return
 
@@ -177,6 +205,12 @@ async function handleLocationMessage(event: LineEvent): Promise<void> {
     lat: msg.latitude,
     lon: msg.longitude,
     name: msg.title || `📍 ${msg.latitude.toFixed(2)}°N ${msg.longitude.toFixed(2)}°E`
+  }
+
+  // Save location to cache
+  if (userId) {
+    userLocationCache.set(userId, location)
+    console.log(`💾 Saved GPS location for user: ${location.name}`)
   }
 
   // Fetch compact forecast

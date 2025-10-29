@@ -37,74 +37,6 @@ function resolveLineApiBaseUrl(): string {
 
 const LINE_API_BASE_URL = resolveLineApiBaseUrl()
 
-// Weather emoji mapping helper
-function getWeatherEmoji(condition: string | undefined): string {
-  if (!condition) return '🌡️'
-  
-  const emojiMap: Record<string, string> = {
-    'Rain': '🌧️',
-    'Drizzle': '🌦️',
-    'Thunderstorm': '⛈️',
-    'Snow': '🌨️',
-    'Clear': '☀️',
-    'Clouds': '☁️',
-    'Mist': '🌫️',
-    'Fog': '🌫️'
-  }
-  
-  return emojiMap[condition] || '🌡️'
-}
-
-// Format weather data for display
-function formatWeatherData(weatherData: Record<string, unknown>) {
-  if (!weatherData?.main || typeof weatherData.main !== 'object') {
-    return {
-      temp: 'ไม่ทราบ',
-      feelsLike: '',
-      wind: 'ไม่ทราบ',
-      windGust: null,
-      humidity: 'ไม่ทราบ',
-      description: 'ไม่มีข้อมูล',
-      emoji: '🌡️'
-    }
-  }
-
-  const main = weatherData.main as Record<string, number>
-  const wind = (weatherData.wind || {}) as Record<string, number>
-  
-  return {
-    temp: typeof main.temp === 'number' ? Math.round(main.temp).toString() : 'ไม่ทราบ',
-    feelsLike: typeof main.feels_like === 'number' ? ` (รู้สึก ${Math.round(main.feels_like)}°C)` : '',
-    wind: typeof wind.speed === 'number' ? (wind.speed * 10 / 10).toString() : 'ไม่ทราบ',
-    windGust: typeof wind.gust === 'number' ? (wind.gust * 10 / 10).toString() : null,
-    humidity: typeof main.humidity === 'number' ? main.humidity.toString() : 'ไม่ทราบ',
-    description: Array.isArray(weatherData.weather) ? (weatherData.weather as Array<{main?: string}>)[0]?.main || 'ปกติ' : 'ปกติ',
-    emoji: getWeatherEmoji((weatherData.weather as Array<{main?: string}>)?.[0]?.main)
-  }
-}
-
-// Validate weather data exists and is complete
-function validateWeatherData(data: unknown): boolean {
-  if (!data || typeof data !== 'object') return false
-  
-  const weather = data as Record<string, unknown>
-  return !!(weather.main && 
-          typeof weather.main === 'object' && 
-          'temp' in (weather.main as object) &&
-          Array.isArray(weather.weather) &&
-          weather.weather.length > 0)
-}
-
-// Handle weather API errors gracefully
-function handleWeatherError(error: unknown): Record<string, unknown> {
-  console.error('⚠️ Weather data unavailable:', error)
-  return {
-    main: { temp: null, feels_like: null, humidity: null },
-    weather: [{ main: 'ไม่สามารถดึงข้อมูลได้' }],
-    wind: { speed: null, gust: null }
-  }
-}
-
 async function logOfflineReply(payload: { replyToken: string; messages: Record<string, unknown>[] }) {
   const fallbackPath =
     process.env.LINE_OFFLINE_LOG_PATH || path.join(process.cwd(), '.next', 'logs', 'line-offline-replies.log')
@@ -356,29 +288,61 @@ function formatForecastMessage(
     }
   }
 
-  // Extract weather data using new helper function
-  const weatherData = forecast.weatherData as Record<string, unknown>
-  
-  if (!validateWeatherData(weatherData)) {
-    console.warn('⚠️ Invalid weather data, using fallback')
-    const fallbackWeather = handleWeatherError(new Error('Invalid weather format'))
-    Object.assign(weatherData, fallbackWeather)
-  }
-  
-  const weather = formatWeatherData(weatherData)
-  
+  // Extract weather data
+  const temp =
+    (forecast.weatherData as Record<string, unknown>)?.main &&
+    ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)
+      ?.temp !== undefined
+      ? ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>).temp
+      : 'ไม่ทราบ'
+  const feelsLike =
+    (forecast.weatherData as Record<string, unknown>)?.main &&
+    ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)
+      ?.feels_like !== undefined
+      ? ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>).feels_like
+      : null
+  const windSpeed =
+    (forecast.weatherData as Record<string, unknown>)?.wind &&
+    ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>)?.speed
+      ? ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>).speed
+      : 'ไม่ทราบ'
+  const windGust =
+    (forecast.weatherData as Record<string, unknown>)?.wind &&
+    ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>)?.gust
+      ? ((forecast.weatherData as Record<string, unknown>).wind as Record<string, number>).gust
+      : null
+  const humidity =
+    (forecast.weatherData as Record<string, unknown>)?.main &&
+    ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>)?.humidity
+      ? ((forecast.weatherData as Record<string, unknown>).main as Record<string, number>).humidity
+      : null
+  const description =
+    (forecast.weatherData as Record<string, unknown>)?.weather &&
+    Array.isArray((forecast.weatherData as Record<string, unknown>).weather)
+      ? ((forecast.weatherData as Record<string, unknown>).weather as Array<{ main: string }>)[0]?.main
+      : null
+
   // Format display values
   const tideEmoji = tideStatus === 'น้ำขึ้น' ? '🔺' : '🔻'
   const tideLabel = tideStatus === 'น้ำขึ้น' ? 'น้ำขึ้น' : 'น้ำลง'
-  const tempDisplay = weather.temp
-  const feelsLikeDisplay = weather.feelsLike
-  const windDisplay = weather.wind
-  const windGustDisplay = weather.windGust
-  const humidityDisplay = weather.humidity
+  const tempDisplay = typeof temp === 'number' ? Math.round(temp) : '?'
+  const feelsLikeDisplay = typeof feelsLike === 'number' ? Math.round(feelsLike) : null
+  const windDisplay = typeof windSpeed === 'number' ? Math.round(windSpeed * 10) / 10 : '?'
+  const windGustDisplay = typeof windGust === 'number' ? Math.round(windGust * 10) / 10 : null
+  const humidityDisplay = typeof humidity === 'number' ? humidity : '?'
 
   // Get weather emoji and condition text
-  const weatherEmoji = weather.emoji
-  const weatherText = weather.description
+  const weatherEmoji = description
+    ? description.includes('Rain') || description.includes('rain')
+      ? '🌧️'
+      : description.includes('Cloud') || description.includes('cloud')
+        ? '☁️'
+        : description.includes('Clear') || description.includes('Sunny')
+          ? '☀️'
+          : '🌡️'
+    : '🌡️'
+  
+  const weatherText = description || 'ปกติ'
 
   // Build current water level info
   const heightInfo = typeof currentHeight === 'number' ? ` (${(currentHeight as number).toFixed(2)}ม.)` : ''
@@ -412,7 +376,7 @@ function formatForecastMessage(
   messageText += `${tideEmoji} ${tideLabel}${heightInfo}\n`
 
   // Weather section
-  messageText += `${weatherEmoji} ${weatherText} | ${tempDisplay}°C${feelsLikeDisplay}\n` +
+  messageText += `${weatherEmoji} ${weatherText} | ${tempDisplay}°C${feelsLikeText}\n` +
                  `💨 ${windDisplay}m/s${windGustDisplay ? ` (ต่อ ${windGustDisplay})` : ''} | 💧 ${humidityDisplay}%\n`
 
   messageText += `━━━━━━━━━━━━━━━━━━\n`

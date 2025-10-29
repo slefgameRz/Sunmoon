@@ -44,7 +44,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import MapSelector from "./map-selector";
-import TideAnimationNew from "./tide-animation-new";
+import { WaterLevelGraphV2 as WaterLevelGraph } from "./water-level-graph-v2";
 import ApiStatusDashboard from "./api-status-dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -94,18 +94,6 @@ const defaultWeatherData = {
   wind: { speed: 0, deg: 0 },
   name: "ไม่ทราบ",
 };
-
-// Enhanced popular locations with more details
-const popularCoastalLocations: LocationData[] = [
-  { lat: 13.7563, lon: 100.5018, name: "กรุงเทพมหานคร" },
-  { lat: 7.8804, lon: 98.3923, name: "ภูเก็ต" },
-  { lat: 9.1378, lon: 99.3328, name: "เกาะสมุย" },
-  { lat: 12.9236, lon: 100.8783, name: "พัทยา" },
-  { lat: 11.2567, lon: 99.9534, name: "หัวหิน" },
-  { lat: 8.4304, lon: 99.9588, name: "กระบี่" },
-  { lat: 9.9673, lon: 99.0515, name: "เกาะช้าง" },
-  { lat: 13.3611, lon: 100.9847, name: "บางแสน" },
-];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -647,47 +635,6 @@ export default function EnhancedLocationSelector() {
                   </div>
                 </div>
               )}
-
-              {/* Popular Locations - Responsive Pills */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Star className="h-4 w-4 text-yellow-500" />
-                  ตำแหน่งยอดนิยม
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {popularCoastalLocations.map((location) => (
-                    <Button
-                      key={location.name}
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-3 h-auto rounded-full transition-all border-2 touch-manipulation min-h-[44px]",
-                        selectedLocation.lat === location.lat &&
-                          selectedLocation.lon === location.lon
-                          ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-md"
-                          : "hover:bg-blue-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600",
-                      )}
-                      onClick={() => {
-                        setSelectedLocation(location);
-                        if (typeof window !== "undefined") {
-                          localStorage.setItem(
-                            "lastLocation",
-                            JSON.stringify(location),
-                          );
-                        }
-                      }}
-                      aria-pressed={
-                        selectedLocation.lat === location.lat &&
-                        selectedLocation.lon === location.lon
-                      }
-                      aria-label={`เลือกตำแหน่ง ${location.name}`}
-                    >
-                      {location.name}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
               {/* Current Coordinates Display */}
               <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
                 <div className="flex items-center justify-between">
@@ -1314,102 +1261,11 @@ export default function EnhancedLocationSelector() {
                     </Card>
                   )}
 
-                  {/* Full-Day Hourly Tide Table */}
+                  {/* Consolidated Water Level Experience */}
                   {currentTideData.graphData &&
                     currentTideData.graphData.length > 0 && (
-                      <Card className="shadow-lg border-0">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                              <Waves
-                                className="h-6 w-6 text-blue-600 dark:text-blue-400"
-                                aria-hidden="true"
-                              />
-                            </div>
-                            ระดับน้ำทุกชั่วโมง (24 ชั่วโมง)
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-900/40 border-b-2 border-blue-300 dark:border-blue-700">
-                                  <th className="text-left py-4 px-4 font-bold text-blue-900 dark:text-blue-100 text-base">
-                                    ⏰ เวลา
-                                  </th>
-                                  <th className="text-right py-4 px-4 font-bold text-blue-900 dark:text-blue-100 text-base">
-                                    📊 ระดับน้ำ (ม.)
-                                  </th>
-                                  <th className="text-center py-4 px-4 font-bold text-blue-900 dark:text-blue-100 text-base">
-                                    🎯 สถานะ
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {currentTideData.graphData.map(
-                                  (dataPoint, idx) => {
-                                    // Check if this hour has a significant tide event
-                                    const isHighTide =
-                                      currentTideData.highTideTime ===
-                                      dataPoint.time;
-                                    const isLowTide =
-                                      currentTideData.lowTideTime ===
-                                      dataPoint.time;
-
-                                    return (
-                                      <tr
-                                        key={idx}
-                                        className={cn(
-                                          "border-b border-gray-200 dark:border-gray-700 hover:shadow-md transition-all hover:scale-[1.01]",
-                                          isHighTide &&
-                                            "bg-gradient-to-r from-red-50 to-red-100/50 dark:from-red-900/20 dark:to-red-900/10 border-red-200 dark:border-red-700/50",
-                                          isLowTide &&
-                                            "bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-700/50",
-                                        )}
-                                      >
-                                        <td className="py-4 px-4 font-sans font-bold text-gray-900 dark:text-white text-lg">
-                                          {dataPoint.time}
-                                        </td>
-                                        <td className="py-4 px-4 text-right font-bold text-gray-900 dark:text-white text-lg">
-                                          {dataPoint.level.toFixed(2)}
-                                        </td>
-                                        <td className="py-4 px-4 text-center">
-                                          {isHighTide ? (
-                                            <Badge className="bg-gradient-to-r from-red-200 to-red-300 dark:from-red-900 dark:to-red-800 text-red-900 dark:text-red-100 text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
-                                              ↑ สูงสุด
-                                            </Badge>
-                                          ) : isLowTide ? (
-                                            <Badge className="bg-gradient-to-r from-blue-200 to-blue-300 dark:from-blue-900 dark:to-blue-800 text-blue-900 dark:text-blue-100 text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
-                                              ↓ ต่ำสุด
-                                            </Badge>
-                                          ) : (
-                                            <Badge
-                                              className={cn(
-                                                "text-xs font-bold px-3 py-1.5 rounded-full shadow-sm",
-                                                dataPoint.prediction
-                                                  ? "bg-gradient-to-r from-green-200 to-green-300 dark:from-green-900 dark:to-green-800 text-green-900 dark:text-green-100"
-                                                  : "bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 text-gray-900 dark:text-gray-100",
-                                              )}
-                                            >
-                                              {dataPoint.prediction
-                                                ? "📈 ทำนาย"
-                                                : "✓ ข้อมูล"}
-                                            </Badge>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    );
-                                  },
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <WaterLevelGraph tideData={currentTideData} location={selectedLocation} />
                     )}
-
-                  {/* Tide Graph - Full Width */}
-                  <TideAnimationNew tideData={currentTideData} />
 
                   {/* Status Footer */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">

@@ -24,6 +24,7 @@ export function getDefaultLineLocation(): LocationData {
   return {
     lat,
     lon,
+    
     name: name && name.length > 0 ? name : FALLBACK_LOCATION.name,
   }
 }

@@ -561,7 +561,36 @@ function generateHarmonicTidePrediction(
 // Deprecated helper functions removed to reduce bundle size and unused exports.
 
 /**
+ * Get surrounding tide events for a given time
+ */
+function getSurroundingTideEvents(
+  tideEvents: TideEvent[],
+  currentTime: { hour: number; minute: number },
+): { prev: TideEvent | null; next: TideEvent | null } {
+  let prevEvent: TideEvent | null = null;
+  let nextEvent: TideEvent | null = null;
+
+  let currentMinutes = currentTime.hour * 60 + currentTime.minute;
+
+  for (let i = 0; i < tideEvents.length; i++) {
+    const event = tideEvents[i];
+    const [eventHour, eventMinute] = event.time.split(":").map(Number);
+    const eventMinutes = eventHour * 60 + eventMinute;
+
+    if (eventMinutes <= currentMinutes) {
+      prevEvent = event;
+    } else if (!nextEvent) {
+      nextEvent = event;
+      break;
+    }
+  }
+
+  return { prev: prevEvent, next: nextEvent };
+}
+
+/**
  * Calculate current water level based on tide events and time
+ * (Legacy interpolation method - kept for fallback)
  */
 function calculateCurrentWaterLevel(
   tideEvents: TideEvent[],
@@ -909,15 +938,46 @@ export async function getTideData(
     // Fetch real tide events
     const tideEvents = await fetchRealTideData(location, date);
 
-    // Calculate current water level
+    // Calculate current water level directly from harmonic engine
+    // (More accurate than interpolating between events)
     const currentTime =
       time ||
       (() => {
         const now = new Date();
         return { hour: now.getHours(), minute: now.getMinutes() };
       })();
-    const { level: currentWaterLevel, status: waterLevelStatus } =
-      calculateCurrentWaterLevel(tideEvents, currentTime);
+    
+    // Use harmonic prediction for accurate current level (if available)
+    let currentWaterLevel: number
+    let waterLevelStatus: string
+    
+    // Try to use harmonic prediction if we have it
+    try {
+      // Import here to avoid circular dependency
+      const { predictTideLevel } = await import('./harmonic-engine');
+      const result = predictTideLevel(date, location, currentTime);
+      currentWaterLevel = result.level;
+      
+      // Determine status from surrounding tide events
+      const surrounding = getSurroundingTideEvents(tideEvents, currentTime);
+      if (surrounding.prev && surrounding.next) {
+        if (surrounding.prev.type === 'low' && surrounding.next.type === 'high') {
+          waterLevelStatus = 'น้ำขึ้น';
+        } else if (surrounding.prev.type === 'high' && surrounding.next.type === 'low') {
+          waterLevelStatus = 'น้ำลง';
+        } else {
+          waterLevelStatus = 'น้ำนิ่ง';
+        }
+      } else {
+        waterLevelStatus = 'น้ำนิ่ง';
+      }
+    } catch (error) {
+      // Fallback to interpolation method
+      console.warn('⚠️ Falling back to interpolation for current water level');
+      const interpolated = calculateCurrentWaterLevel(tideEvents, currentTime);
+      currentWaterLevel = interpolated.level;
+      waterLevelStatus = interpolated.status;
+    }
 
     // Determine high and low tide times
     const highTideTime =

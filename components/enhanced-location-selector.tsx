@@ -25,6 +25,9 @@ import {
   Radio,
   Anchor,
   TrendingDown,
+  Map,
+  History,
+  Calendar as CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -47,6 +50,21 @@ import MapSelector from "./map-selector";
 import { WaterLevelGraphV2 as WaterLevelGraph } from "./water-level-graph-v2";
 import ApiStatusDashboard from "./api-status-dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DisasterAlert from "./disaster-alert";
+import {
+  analyzeDisasterRisk,
+  type DisasterAnalysis,
+} from "@/lib/disaster-analysis";
+import RiskAreaMap from "./RiskAreaMap";
+import HistoricalEventsPanel from "./HistoricalEventsPanel";
+import MultiDayForecast from "./MultiDayForecast";
+import QuickActions from "./QuickActions";
+import WeatherTrends from "./WeatherTrends";
+import { HeroCardSkeleton, MetricCardSkeleton, GraphSkeleton } from "./LoadingSkeletons";
+import FavoriteLocations from "./FavoriteLocations";
+import SettingsPanel from "./SettingsPanel";
+import SafetyTips from "./SafetyTips";
+import ThemeToggle from "./ThemeToggle";
 
 // Import distance and offline storage utilities
 import {
@@ -153,6 +171,7 @@ export default function EnhancedLocationSelector() {
     null,
   );
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [disasterAnalysis, setDisasterAnalysis] = useState<DisasterAnalysis | null>(null);
 
   // Update nearest pier information
   const updateNearestPier = useCallback(() => {
@@ -296,7 +315,7 @@ export default function EnhancedLocationSelector() {
 
     setGettingLocation(true);
     setGeoError(null);
-    
+
     try {
       // Try browser geolocation first with short timeout
       try {
@@ -318,13 +337,13 @@ export default function EnhancedLocationSelector() {
 
         setSelectedLocation(newLocation);
         localStorage.setItem("lastLocation", JSON.stringify(newLocation));
-        
+
         setTimeout(() => {
           if (isHydrated) {
             fetchForecastData();
           }
         }, 100);
-        
+
         setGettingLocation(false);
         return; // Success!
       } catch {
@@ -335,9 +354,9 @@ export default function EnhancedLocationSelector() {
       try {
         const response = await fetch("https://ipapi.co/json/");
         if (!response.ok) throw new Error("IP API failed");
-        
+
         const data = await response.json();
-        
+
         if (data.latitude && data.longitude) {
           const newLocation = {
             lat: data.latitude,
@@ -347,13 +366,13 @@ export default function EnhancedLocationSelector() {
 
           setSelectedLocation(newLocation);
           localStorage.setItem("lastLocation", JSON.stringify(newLocation));
-          
+
           setTimeout(() => {
             if (isHydrated) {
               fetchForecastData();
             }
           }, 100);
-          
+
           setGettingLocation(false);
           return; // Success with IP!
         }
@@ -370,7 +389,7 @@ export default function EnhancedLocationSelector() {
 
       setSelectedLocation(bangkokLocation);
       localStorage.setItem("lastLocation", JSON.stringify(bangkokLocation));
-      
+
       setTimeout(() => {
         if (isHydrated) {
           fetchForecastData();
@@ -487,6 +506,24 @@ export default function EnhancedLocationSelector() {
       return () => clearInterval(intervalId);
     }
   }, [currentTideData?.tideStatus, fetchForecastData, isHydrated]);
+
+  // Analyze disaster risk when tide or weather data changes
+  useEffect(() => {
+    if (isHydrated && currentTideData && currentWeatherData && currentTideData.apiStatus !== 'error') {
+      try {
+        const analysis = analyzeDisasterRisk(
+          currentTideData,
+          currentWeatherData,
+          selectedDate || new Date(),
+          selectedLocation.name
+        );
+        setDisasterAnalysis(analysis);
+      } catch (error) {
+        console.error('Error analyzing disaster risk:', error);
+        setDisasterAnalysis(null);
+      }
+    }
+  }, [currentTideData, currentWeatherData, selectedDate, selectedLocation.name, isHydrated]);
 
   if (!isHydrated) {
     return (
@@ -773,31 +810,53 @@ export default function EnhancedLocationSelector() {
           aria-label="แผงควบคุมพยากรณ์และสถานะระบบ"
         >
           <TabsList
-            className="grid w-full grid-cols-2 mb-6"
+            className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 h-auto"
             role="tablist"
             aria-label="เลือกประเภทข้อมูล"
           >
             <TabsTrigger
               value="forecast"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 py-3"
               aria-describedby="forecast-tab-description"
             >
               <Waves className="h-4 w-4" aria-hidden="true" />
-              พยากรณ์น้ำขึ้นลง
+              <span className="hidden sm:inline">พยากรณ์</span>วันนี้
+            </TabsTrigger>
+            <TabsTrigger
+              value="multiday"
+              className="flex items-center gap-2 py-3"
+              aria-describedby="multiday-tab-description"
+            >
+              <CalendarDays className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">พยากรณ์</span>7 วัน
+            </TabsTrigger>
+            <TabsTrigger
+              value="riskmap"
+              className="flex items-center gap-2 py-3"
+              aria-describedby="riskmap-tab-description"
+            >
+              <Map className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">แผนที่</span>เสี่ยง
             </TabsTrigger>
             <TabsTrigger
               value="status"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 py-3"
               aria-describedby="status-tab-description"
             >
               <Activity className="h-4 w-4" aria-hidden="true" />
-              สถานะระบบ
+              <span className="hidden sm:inline">สถานะ</span>ระบบ
             </TabsTrigger>
           </TabsList>
 
           {/* Hidden descriptions for screen readers */}
           <div id="forecast-tab-description" className="sr-only">
             แสดงข้อมูลพยากรณ์น้ำขึ้นน้ำลง สภาพอากาศ และกราฟแสดงระดับน้ำทั้งวัน
+          </div>
+          <div id="multiday-tab-description" className="sr-only">
+            แสดงพยากรณ์น้ำขึ้นน้ำลงล่วงหน้า 7 วัน พร้อมระดับความเสี่ยง
+          </div>
+          <div id="riskmap-tab-description" className="sr-only">
+            แสดงแผนที่พื้นที่เสี่ยงภัยและประวัติเหตุการณ์ภัยพิบัติ
           </div>
           <div id="status-tab-description" className="sr-only">
             แสดงสถานะการทำงานของ API และสุขภาพระบบ
@@ -1152,6 +1211,32 @@ export default function EnhancedLocationSelector() {
                     </Card>
                   )}
 
+                  {/* Disaster Risk Analysis Alert */}
+                  {disasterAnalysis && (
+                    <DisasterAlert analysis={disasterAnalysis} />
+                  )}
+
+                  {/* Quick Actions Bar */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
+                    <div>
+                      <h3 className="font-bold text-gray-900 dark:text-white">
+                        ดำเนินการด่วน
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        แชร์ข้อมูลหรือคัดลอกพิกัด
+                      </p>
+                    </div>
+                    <QuickActions
+                      location={selectedLocation}
+                      tideData={currentTideData}
+                    />
+                  </div>
+
+                  {/* Weather Trends */}
+                  {currentWeatherData && currentWeatherData.main.temp > 0 && (
+                    <WeatherTrends weatherData={currentWeatherData} />
+                  )}
+
                   {/* Nearest Pier Information Card */}
                   {nearestPierInfo && (
                     <Card className="shadow-lg border-0 bg-gradient-to-r from-orange-50 via-red-50 to-pink-50 dark:from-orange-950/30 dark:via-red-950/30 dark:to-pink-950/30">
@@ -1296,6 +1381,40 @@ export default function EnhancedLocationSelector() {
             </div>
           </TabsContent>
 
+          {/* Multi-Day Forecast Tab */}
+          <TabsContent
+            value="multiday"
+            className="space-y-6"
+            role="tabpanel"
+            aria-labelledby="multiday-tab"
+            tabIndex={0}
+          >
+            <MultiDayForecast currentLocation={selectedLocation} />
+          </TabsContent>
+
+          {/* Risk Map Tab */}
+          <TabsContent
+            value="riskmap"
+            className="space-y-6"
+            role="tabpanel"
+            aria-labelledby="riskmap-tab"
+            tabIndex={0}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RiskAreaMap
+                currentLocation={selectedLocation}
+                onLocationSelect={(lat, lon) => {
+                  setSelectedLocation({
+                    lat,
+                    lon,
+                    name: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+                  });
+                }}
+              />
+              <HistoricalEventsPanel currentLocation={selectedLocation} />
+            </div>
+          </TabsContent>
+
           <TabsContent
             value="status"
             className="space-y-6"
@@ -1303,12 +1422,40 @@ export default function EnhancedLocationSelector() {
             aria-labelledby="status-tab"
             tabIndex={0}
           >
-            <ApiStatusDashboard
-              tideApiStatus={currentTideData.apiStatus}
-              weatherApiStatus="success"
-              lastUpdated={currentTideData.lastUpdated}
-              onRefresh={fetchForecastData}
-            />
+            {/* Theme Toggle in header */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">ตั้งค่าและสถานะระบบ</h2>
+              <ThemeToggle />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-6">
+                <ApiStatusDashboard
+                  tideApiStatus={currentTideData.apiStatus}
+                  weatherApiStatus="success"
+                  lastUpdated={currentTideData.lastUpdated}
+                  onRefresh={fetchForecastData}
+                />
+
+                <SettingsPanel />
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-6">
+                <FavoriteLocations
+                  currentLocation={selectedLocation}
+                  onSelectLocation={(loc) => {
+                    setSelectedLocation(loc);
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("lastLocation", JSON.stringify(loc));
+                    }
+                  }}
+                />
+
+                <SafetyTips currentRiskLevel={disasterAnalysis?.riskLevel || "low"} />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 

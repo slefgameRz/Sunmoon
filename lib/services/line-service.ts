@@ -88,15 +88,14 @@ function validateWeatherData(data: unknown): boolean {
   if (!data || typeof data !== 'object') return false
   
   const weather = data as Record<string, unknown>
+  // Check if we have at least the main temperature data
   return !!(weather.main && 
           typeof weather.main === 'object' && 
-          'temp' in (weather.main as object) &&
-          Array.isArray(weather.weather) &&
-          weather.weather.length > 0)
+          'temp' in (weather.main as object))
 }
 
 // Handle weather API errors gracefully
-function handleWeatherError(error: unknown): Record<string, unknown> {
+export function handleWeatherError(error: unknown): Record<string, unknown> {
   console.error('⚠️ Weather data unavailable:', error)
   return {
     main: { temp: null, feels_like: null, humidity: null },
@@ -253,12 +252,16 @@ async function handleTextMessage(event: LineEvent, userId: string | null): Promi
   }
 
   // Fetch compact forecast
-  const forecast = await compactClient.fetchCompactForecast(
+  const forecastResult = await compactClient.fetchCompactForecast(
     location.lat,
     location.lon
   )
 
-  const message = formatForecastMessage(forecast, location)
+  if (forecastResult.error) {
+    console.warn(`⚠️ Forecast error: ${forecastResult.error}`)
+  }
+
+  const message = formatForecastMessage(forecastResult.data, location)
   await sendLineMessage(event.replyToken, [message])
 }
 
@@ -282,12 +285,16 @@ async function handleLocationMessage(event: LineEvent, userId: string | null): P
   }
 
   // Fetch compact forecast
-  const forecast = await compactClient.fetchCompactForecast(
+  const forecastResult = await compactClient.fetchCompactForecast(
     location.lat,
     location.lon
   )
 
-  const message = formatForecastMessage(forecast, location)
+  if (forecastResult.error) {
+    console.warn(`⚠️ Forecast error: ${forecastResult.error}`)
+  }
+
+  const message = formatForecastMessage(forecastResult.data, location)
   await sendLineMessage(event.replyToken, [message])
 }
 
@@ -320,52 +327,86 @@ function parseLocationFromText(text: string): LocationData | null {
  * Shows only essential info for quick mobile viewing
  * Users tap link to see detailed data on web
  */
-function formatForecastMessage(
-  forecast: Record<string, unknown>,
+export function formatForecastMessage(
+  forecast: any,
   location: LocationData
 ): Record<string, unknown> {
+  // Handle CompactFrame format (compact protocol)
+  const isCompactFrame = forecast.type && forecast.tide !== undefined
+  
   // Extract tide data
-  const tideStatus =
-    (forecast.tideData as Record<string, unknown>)?.waterLevelStatus ||
-    'ไม่ทราบ'
-  const currentHeight =
-    (forecast.tideData as Record<string, unknown>)?.currentWaterLevel !== undefined
-      ? (forecast.tideData as Record<string, unknown>).currentWaterLevel
-      : null
-  const pierDistance =
-    (forecast.tideData as Record<string, unknown>)?.pierDistance !== undefined
-      ? (forecast.tideData as Record<string, unknown>).pierDistance
-      : null
-  const nearestPierName =
-    (forecast.tideData as Record<string, unknown>)?.nearestPierName || null
+  let tideStatus: string = 'ไม่ทราบ'
+  let currentHeight: number | null = null
+  let pierDistance: number | null = null
+  let nearestPierName: string | null = null
+  let nextHighTide: { time: string; level: number } | null = null
+  let nextLowTide: { time: string; level: number } | null = null
   
-  // Extract next tide events
-  const tideEvents = (forecast.tideData as Record<string, unknown>)
-    ?.tideEvents as Array<{ time: string; type: string; level: number }> | undefined
-  let nextHighTide = null
-  let nextLowTide = null
-  
-  if (Array.isArray(tideEvents)) {
-    for (const event of tideEvents) {
-      if (event.type === 'high' && !nextHighTide) {
-        nextHighTide = event
+  if (isCompactFrame && forecast.tide) {
+    // From CompactFrame
+    const tideHeight = forecast.tide.h
+    currentHeight = tideHeight
+    tideStatus = forecast.tide.trend === 1 ? 'น้ำขึ้น' : forecast.tide.trend === 2 ? 'น้ำลง' : 'เสถียร'
+    if (forecast.tide.ht_time !== undefined && forecast.tide.ht !== undefined) {
+      nextHighTide = {
+        time: new Date(Date.now() + forecast.tide.ht_time * 3600000).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        level: forecast.tide.ht
       }
-      if (event.type === 'low' && !nextLowTide) {
-        nextLowTide = event
+    }
+  } else {
+    // From traditional TideData format
+    const tideDataLoc = (forecast.tideData as Record<string, unknown>) || {}
+    tideStatus = (tideDataLoc.waterLevelStatus as string) || 'ไม่ทราบ'
+    currentHeight = tideDataLoc.currentWaterLevel !== undefined
+      ? (tideDataLoc.currentWaterLevel as number)
+      : null
+    pierDistance = tideDataLoc.pierDistance !== undefined
+      ? (tideDataLoc.pierDistance as number)
+      : null
+    nearestPierName = (tideDataLoc.nearestPierName as string) || null
+    
+    // Extract next tide events
+    const tideEvents = tideDataLoc.tideEvents as Array<{ time: string; type: string; level: number }> | undefined
+    if (Array.isArray(tideEvents)) {
+      for (const event of tideEvents) {
+        if (event.type === 'high' && !nextHighTide) {
+          nextHighTide = event
+        }
+        if (event.type === 'low' && !nextLowTide) {
+          nextLowTide = event
+        }
       }
     }
   }
 
-  // Extract weather data using new helper function
-  const weatherData = forecast.weatherData as Record<string, unknown>
-  
+  // Extract weather data
+  let weatherData: Record<string, unknown> | undefined
+  if (isCompactFrame && forecast.weather) {
+    // Convert CompactFrame weather to standard format
+    weatherData = {
+      main: {
+        temp: (forecast.weather.t || 0) + 10,
+        feels_like: (forecast.weather.t || 0) + 10,
+        humidity: forecast.weather.c || 0
+      },
+      weather: [{ main: 'Cloud' }],
+      wind: {
+        speed: (forecast.weather.w || 0) * 0.5,
+        gust: (forecast.weather.w || 0) * 0.6
+      }
+    }
+  } else {
+    weatherData = (forecast.weatherData || {}) as Record<string, unknown> | undefined
+  }
+
   if (!validateWeatherData(weatherData)) {
     console.warn('⚠️ Invalid weather data, using fallback')
     const fallbackWeather = handleWeatherError(new Error('Invalid weather format'))
-    Object.assign(weatherData, fallbackWeather)
+    // Merge into a new safe object (do not mutate possibly-null source)
+    weatherData = Object.assign({}, weatherData || {}, fallbackWeather)
   }
-  
-  const weather = formatWeatherData(weatherData)
+
+  const weather = formatWeatherData(weatherData || {})
   
   // Format display values
   const tideEmoji = tideStatus === 'น้ำขึ้น' ? '🔺' : '🔻'

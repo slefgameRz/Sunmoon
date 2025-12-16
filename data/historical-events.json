@@ -1,0 +1,564 @@
+{
+    "metadata": {
+        "version": "1.0.0",
+        "lastUpdated": "2567-12-11",
+        "source": "รวบรวมจากหลายแหล่ง: กรมอุตุนิยมวิทยา, World Bank, กรมป้องกันและบรรเทาสาธารณภัย",
+        "totalEvents": 25
+    },
+    "events": [
+        {
+            "id": "flood-2011-central",
+            "date": "2554-10",
+            "year": 2011,
+            "eventType": "flood",
+            "location": {
+                "lat": 14.0,
+                "lon": 100.5,
+                "name": "ภาคกลางและกรุงเทพมหานคร",
+                "provinces": [
+                    "กรุงเทพมหานคร",
+                    "นนทบุรี",
+                    "ปทุมธานี",
+                    "อยุธยา",
+                    "นครสวรรค์"
+                ]
+            },
+            "severity": "catastrophic",
+            "maxWaterLevel": 3.5,
+            "duration": 120,
+            "description": "มหาอุทกภัยครั้งใหญ่ที่สุดในรอบ 50 ปี น้ำท่วมภาคกลางเป็นวงกว้าง กรุงเทพชั้นนอกจมน้ำ",
+            "cause": "ฝนตกหนักต่อเนื่อง พายุหลายลูกเข้าไทย ปริมาณน้ำเกินความจุเขื่อน",
+            "damages": {
+                "economic": "1.4 ล้านล้านบาท",
+                "affected": "13.6 ล้านคน",
+                "deaths": 815,
+                "areaKm2": 30000
+            },
+            "source": "World Bank Thailand Flood 2011 Report",
+            "tags": [
+                "น้ำท่วมใหญ่",
+                "ภาคกลาง",
+                "มหาอุทกภัย"
+            ]
+        },
+        {
+            "id": "storm-pabuk-2019",
+            "date": "2562-01",
+            "year": 2019,
+            "eventType": "storm_surge",
+            "location": {
+                "lat": 9.15,
+                "lon": 99.33,
+                "name": "ภาคใต้ฝั่งอ่าวไทย",
+                "provinces": [
+                    "สุราษฎร์ธานี",
+                    "นครศรีธรรมราช",
+                    "ชุมพร",
+                    "สงขลา"
+                ]
+            },
+            "severity": "severe",
+            "maxWaterLevel": 2.8,
+            "duration": 72,
+            "description": "พายุโซนร้อนปาบึก เข้าสู่อ่าวไทยตอนใน ซัดเข้าฝั่งภาคใต้ด้วยความเร็วลมสูงสุด 75 กม./ชม.",
+            "cause": "พายุโซนร้อนปาบึก (Tropical Storm Pabuk) ก่อตัวในทะเลจีนใต้",
+            "damages": {
+                "economic": "3.5 พันล้านบาท",
+                "affected": "1.5 แสนหลังคาเรือน",
+                "deaths": 8,
+                "areaKm2": 5000
+            },
+            "source": "กรมอุตุนิยมวิทยา, กรมป้องกันและบรรเทาสาธารณภัย",
+            "tags": [
+                "พายุ",
+                "ภาคใต้",
+                "คลื่นลมแรง"
+            ]
+        },
+        {
+            "id": "high-tide-2010-bkk",
+            "date": "2553-10",
+            "year": 2010,
+            "eventType": "high_tide",
+            "location": {
+                "lat": 13.7,
+                "lon": 100.5,
+                "name": "พื้นที่ริมแม่น้ำเจ้าพระยา กรุงเทพมหานคร",
+                "provinces": [
+                    "กรุงเทพมหานคร",
+                    "สมุทรปราการ"
+                ]
+            },
+            "severity": "moderate",
+            "maxWaterLevel": 2.4,
+            "duration": 48,
+            "description": "น้ำทะเลหนุนสูงผิดปกติ ประกอบกับน้ำเหนือไหลหลาก ทำให้พื้นที่ริมแม่น้ำเจ้าพระยาท่วม",
+            "cause": "น้ำทะเลหนุนสูงช่วงน้ำเป็น + น้ำเหนือไหลหลาก",
+            "damages": {
+                "economic": "500 ล้านบาท",
+                "affected": "50,000 หลังคาเรือน",
+                "deaths": 0,
+                "areaKm2": 50
+            },
+            "source": "กรมเจ้าท่า, กทม.",
+            "tags": [
+                "น้ำหนุน",
+                "กรุงเทพ",
+                "น้ำเหนือ"
+            ]
+        },
+        {
+            "id": "erosion-2020-samut",
+            "date": "2563-08",
+            "year": 2020,
+            "eventType": "erosion",
+            "location": {
+                "lat": 13.52,
+                "lon": 100.28,
+                "name": "ชายฝั่งบางขุนเทียน กรุงเทพมหานคร",
+                "provinces": [
+                    "กรุงเทพมหานคร"
+                ]
+            },
+            "severity": "moderate",
+            "maxWaterLevel": 1.8,
+            "duration": 365,
+            "description": "การกัดเซาะชายฝั่งอย่างรุนแรง พื้นที่ชายฝั่งถูกกัดเซาะถดถอยไปปีละ 20-30 เมตร",
+            "cause": "คลื่นลมแรงช่วงมรสุม การขาดป่าชายเลน การทรุดตัวของแผ่นดิน",
+            "damages": {
+                "economic": "200 ล้านบาท",
+                "affected": "5,000 ครัวเรือน",
+                "deaths": 0,
+                "areaKm2": 15
+            },
+            "source": "กรมทรัพยากรทางทะเลและชายฝั่ง",
+            "tags": [
+                "กัดเซาะ",
+                "ชายฝั่ง",
+                "บางขุนเทียน"
+            ]
+        },
+        {
+            "id": "flood-2017-south",
+            "date": "2560-01",
+            "year": 2017,
+            "eventType": "flood",
+            "location": {
+                "lat": 8.5,
+                "lon": 99.8,
+                "name": "ภาคใต้ตอนล่าง",
+                "provinces": [
+                    "นครศรีธรรมราช",
+                    "สุราษฎร์ธานี",
+                    "ชุมพร",
+                    "พัทลุง",
+                    "สงขลา"
+                ]
+            },
+            "severity": "severe",
+            "maxWaterLevel": 3.0,
+            "duration": 30,
+            "description": "น้ำท่วมใหญ่ภาคใต้ ฝนตกต่อเนื่องหลายวัน หลายจังหวัดประกาศภัยพิบัติ",
+            "cause": "ร่องมรสุมตะวันตกเฉียงใต้กำลังแรงพัดปกคลุมภาคใต้ ทำให้ฝนตกหนักต่อเนื่อง",
+            "damages": {
+                "economic": "40 พันล้านบาท",
+                "affected": "1.6 ล้านครัวเรือน",
+                "deaths": 90,
+                "areaKm2": 20000
+            },
+            "source": "กรมป้องกันและบรรเทาสาธารณภัย",
+            "tags": [
+                "น้ำท่วม",
+                "ภาคใต้",
+                "มรสุม"
+            ]
+        },
+        {
+            "id": "storm-harriet-1962",
+            "date": "2505-10",
+            "year": 1962,
+            "eventType": "storm_surge",
+            "location": {
+                "lat": 9.0,
+                "lon": 99.8,
+                "name": "แหลมตะลุมพุก นครศรีธรรมราช",
+                "provinces": [
+                    "นครศรีธรรมราช"
+                ]
+            },
+            "severity": "catastrophic",
+            "maxWaterLevel": 5.0,
+            "duration": 24,
+            "description": "พายุไต้ฝุ่นแฮเรียตพัดเข้าแหลมตะลุมพุก คลื่นสูง 5 เมตรซัดเข้าฝั่ง เสียชีวิตมากที่สุดในประวัติศาสตร์ไทย",
+            "cause": "พายุไต้ฝุ่นแฮเรียต (Typhoon Harriet) ขึ้นฝั่งโดยตรง",
+            "damages": {
+                "economic": "ไม่ระบุ",
+                "affected": "หลายหมู่บ้าน",
+                "deaths": 935,
+                "areaKm2": 200
+            },
+            "source": "กรมอุตุนิยมวิทยา, บันทึกประวัติศาสตร์",
+            "tags": [
+                "พายุไต้ฝุ่น",
+                "แหลมตะลุมพุก",
+                "ภัยพิบัติครั้งใหญ่"
+            ]
+        },
+        {
+            "id": "high-tide-2019-gulf",
+            "date": "2562-11",
+            "year": 2019,
+            "eventType": "high_tide",
+            "location": {
+                "lat": 13.3,
+                "lon": 100.9,
+                "name": "ชายฝั่งอ่าวไทยตอนบน",
+                "provinces": [
+                    "ชลบุรี",
+                    "สมุทรปราการ",
+                    "สมุทรสาคร"
+                ]
+            },
+            "severity": "moderate",
+            "maxWaterLevel": 2.5,
+            "duration": 72,
+            "description": "น้ำทะเลหนุนสูงผิดปกติช่วงน้ำเป็น ร่วมกับลมมรสุมตะวันออกเฉียงเหนือ พื้นที่ชายฝั่งท่วม",
+            "cause": "น้ำทะเลหนุนสูงช่วงน้ำเป็น + ลมมรสุมตะวันออกเฉียงเหนือ",
+            "damages": {
+                "economic": "100 ล้านบาท",
+                "affected": "20,000 หลังคาเรือน",
+                "deaths": 0,
+                "areaKm2": 80
+            },
+            "source": "กรมอุตุนิยมวิทยา",
+            "tags": [
+                "น้ำหนุน",
+                "อ่าวไทย",
+                "มรสุม"
+            ]
+        },
+        {
+            "id": "flood-2021-central",
+            "date": "2564-09",
+            "year": 2021,
+            "eventType": "flood",
+            "location": {
+                "lat": 14.5,
+                "lon": 100.5,
+                "name": "ภาคกลางตอนบน",
+                "provinces": [
+                    "อยุธยา",
+                    "สิงห์บุรี",
+                    "อ่างทอง",
+                    "ลพบุรี"
+                ]
+            },
+            "severity": "moderate",
+            "maxWaterLevel": 2.2,
+            "duration": 45,
+            "description": "น้ำท่วมจากพายุเตี้ยนหมู่และฝนตกหนักภาคเหนือ น้ำเหนือไหลหลาก",
+            "cause": "อิทธิพลพายุเตี้ยนหมู่ (Dianmu) และร่องมรสุม",
+            "damages": {
+                "economic": "15 พันล้านบาท",
+                "affected": "500,000 ครัวเรือน",
+                "deaths": 15,
+                "areaKm2": 10000
+            },
+            "source": "กรมป้องกันและบรรเทาสาธารณภัย",
+            "tags": [
+                "น้ำท่วม",
+                "ภาคกลาง",
+                "พายุเตี้ยนหมู่"
+            ]
+        },
+        {
+            "id": "high-tide-2023-samut",
+            "date": "2566-10",
+            "year": 2023,
+            "eventType": "high_tide",
+            "location": {
+                "lat": 13.6,
+                "lon": 100.3,
+                "name": "สมุทรสาคร",
+                "provinces": [
+                    "สมุทรสาคร"
+                ]
+            },
+            "severity": "moderate",
+            "maxWaterLevel": 2.3,
+            "duration": 48,
+            "description": "น้ำทะเลหนุนสูงช่วงน้ำเป็นเดือนตุลาคม ประกอบกับลมตะวันออกเฉียงเหนือ น้ำท่วมพื้นที่ต่ำ",
+            "cause": "น้ำเป็นช่วงขึ้น 15 ค่ำ + ลมมรสุมตะวันออกเฉียงเหนือ",
+            "damages": {
+                "economic": "50 ล้านบาท",
+                "affected": "10,000 หลังคาเรือน",
+                "deaths": 0,
+                "areaKm2": 30
+            },
+            "source": "กรมอุตุนิยมวิทยา",
+            "tags": [
+                "น้ำหนุน",
+                "สมุทรสาคร",
+                "น้ำเป็น"
+            ]
+        },
+        {
+            "id": "flood-2024-north",
+            "date": "2567-08",
+            "year": 2024,
+            "eventType": "flood",
+            "location": {
+                "lat": 18.8,
+                "lon": 99.0,
+                "name": "ภาคเหนือตอนบน",
+                "provinces": [
+                    "เชียงราย",
+                    "เชียงใหม่",
+                    "น่าน"
+                ]
+            },
+            "severity": "severe",
+            "maxWaterLevel": 2.8,
+            "duration": 14,
+            "description": "น้ำท่วมหนักภาคเหนือจากฝนตกหนักต่อเนื่อง บางพื้นที่ดินถล่ม",
+            "cause": "ฝนตกหนักต่อเนื่องจากร่องมรสุมและพายุโซนร้อน",
+            "damages": {
+                "economic": "20 พันล้านบาท",
+                "affected": "300,000 ครัวเรือน",
+                "deaths": 50,
+                "areaKm2": 8000
+            },
+            "source": "กรมป้องกันและบรรเทาสาธารณภัย",
+            "tags": [
+                "น้ำท่วม",
+                "ภาคเหนือ",
+                "ดินถล่ม"
+            ]
+        },
+        {
+            "id": "storm-gay-1989",
+            "date": "2532-11",
+            "year": 1989,
+            "eventType": "storm_surge",
+            "location": {
+                "lat": 10.5,
+                "lon": 99.4,
+                "name": "อ่าวไทยตอนกลาง ชุมพร",
+                "provinces": [
+                    "ชุมพร",
+                    "ประจวบคีรีขันธ์"
+                ]
+            },
+            "severity": "catastrophic",
+            "maxWaterLevel": 4.0,
+            "duration": 36,
+            "description": "พายุไต้ฝุ่นเกย์ ขึ้นฝั่งที่ชุมพร สร้างความเสียหายร้ายแรง เรือประมงจม หมู่บ้านถูกทำลาย",
+            "cause": "พายุไต้ฝุ่นเกย์ (Typhoon Gay) ก่อตัวในอ่าวไทยและขึ้นฝั่งอย่างรวดเร็ว",
+            "damages": {
+                "economic": "11 พันล้านบาท",
+                "affected": "หลายหมู่บ้าน",
+                "deaths": 602,
+                "areaKm2": 1000
+            },
+            "source": "กรมอุตุนิยมวิทยา, บันทึกประวัติศาสตร์",
+            "tags": [
+                "พายุไต้ฝุ่น",
+                "ชุมพร",
+                "ภัยพิบัติครั้งใหญ่"
+            ]
+        },
+        {
+            "id": "high-tide-2020-pattaya",
+            "date": "2563-11",
+            "year": 2020,
+            "eventType": "high_tide",
+            "location": {
+                "lat": 12.93,
+                "lon": 100.88,
+                "name": "พัทยา ชลบุรี",
+                "provinces": [
+                    "ชลบุรี"
+                ]
+            },
+            "severity": "minor",
+            "maxWaterLevel": 2.1,
+            "duration": 24,
+            "description": "น้ำทะเลหนุนสูงช่วงน้ำเป็น ท่วมพื้นที่ต่ำริมชายหาดพัทยา",
+            "cause": "น้ำเป็นข้างขึ้น 15 ค่ำ",
+            "damages": {
+                "economic": "10 ล้านบาท",
+                "affected": "ร้านค้าริมหาด",
+                "deaths": 0,
+                "areaKm2": 5
+            },
+            "source": "เทศบาลเมืองพัทยา",
+            "tags": [
+                "น้ำหนุน",
+                "พัทยา",
+                "น้ำเป็น"
+            ]
+        },
+        {
+            "id": "flood-2010-hat-yai",
+            "date": "2553-11",
+            "year": 2010,
+            "eventType": "flood",
+            "location": {
+                "lat": 7.0,
+                "lon": 100.5,
+                "name": "หาดใหญ่ สงขลา",
+                "provinces": [
+                    "สงขลา"
+                ]
+            },
+            "severity": "severe",
+            "maxWaterLevel": 2.5,
+            "duration": 72,
+            "description": "น้ำท่วมหาดใหญ่ครั้งใหญ่ เมืองจมน้ำสูง 2 เมตร เศรษฐกิจหยุดชะงัก",
+            "cause": "ฝนตกหนักต่อเนื่องจากอิทธิพลร่องมรสุม คลองอู่ตะเภาล้น",
+            "damages": {
+                "economic": "25 พันล้านบาท",
+                "affected": "200,000 ครัวเรือน",
+                "deaths": 30,
+                "areaKm2": 500
+            },
+            "source": "จังหวัดสงขลา, กปร.",
+            "tags": [
+                "น้ำท่วม",
+                "หาดใหญ่",
+                "สงขลา"
+            ]
+        },
+        {
+            "id": "erosion-phuket-2018",
+            "date": "2561-08",
+            "year": 2018,
+            "eventType": "erosion",
+            "location": {
+                "lat": 7.89,
+                "lon": 98.30,
+                "name": "ชายหาดภูเก็ต",
+                "provinces": [
+                    "ภูเก็ต"
+                ]
+            },
+            "severity": "moderate",
+            "maxWaterLevel": 2.0,
+            "duration": 90,
+            "description": "การกัดเซาะชายหาดจากคลื่นลมแรงช่วงมรสุมตะวันตกเฉียงใต้ หาดทรายลดลง",
+            "cause": "มรสุมตะวันตกเฉียงใต้กำลังแรง คลื่นสูง 2-3 เมตร",
+            "damages": {
+                "economic": "100 ล้านบาท",
+                "affected": "ธุรกิจท่องเที่ยวชายหาด",
+                "deaths": 0,
+                "areaKm2": 10
+            },
+            "source": "กรมทรัพยากรทางทะเลและชายฝั่ง",
+            "tags": [
+                "กัดเซาะ",
+                "ภูเก็ต",
+                "มรสุม"
+            ]
+        },
+        {
+            "id": "high-tide-2022-bkk",
+            "date": "2565-10",
+            "year": 2022,
+            "eventType": "high_tide",
+            "location": {
+                "lat": 13.68,
+                "lon": 100.52,
+                "name": "พื้นที่ริมแม่น้ำเจ้าพระยา กรุงเทพมหานคร",
+                "provinces": [
+                    "กรุงเทพมหานคร"
+                ]
+            },
+            "severity": "moderate",
+            "maxWaterLevel": 2.25,
+            "duration": 72,
+            "description": "น้ำทะเลหนุนสูงสุดในรอบหลายปี ประกอบกับน้ำเหนือ ท่วมพื้นที่ริมน้ำหลายจุด",
+            "cause": "น้ำเป็นข้างขึ้น + น้ำเหนือไหลหลาก + ลมมรสุมตะวันออกเฉียงเหนือ",
+            "damages": {
+                "economic": "300 ล้านบาท",
+                "affected": "30,000 ครัวเรือน",
+                "deaths": 0,
+                "areaKm2": 100
+            },
+            "source": "กรุงเทพมหานคร",
+            "tags": [
+                "น้ำหนุน",
+                "กรุงเทพ",
+                "น้ำเหนือ"
+            ]
+        }
+    ],
+    "riskZones": [
+        {
+            "id": "gulf-inner",
+            "name": "อ่าวไทยตอนใน",
+            "description": "พื้นที่ปากแม่น้ำเจ้าพระยา รวมถึง กทม. สมุทรปราการ สมุทรสาคร",
+            "baseRiskLevel": "medium",
+            "monsoonRisk": {
+                "southwest": "medium",
+                "northeast": "high",
+                "transition": "low"
+            },
+            "historicalFrequency": "น้ำหนุนสูง 4-6 ครั้งต่อปี ช่วง ต.ค.-ม.ค.",
+            "majorEvents": [
+                "flood-2011-central",
+                "high-tide-2010-bkk",
+                "high-tide-2022-bkk"
+            ]
+        },
+        {
+            "id": "gulf-upper",
+            "name": "อ่าวไทยตอนบน (ตะวันออก)",
+            "description": "ชลบุรี ระยอง จันทบุรี ตราด",
+            "baseRiskLevel": "medium",
+            "monsoonRisk": {
+                "southwest": "low",
+                "northeast": "high",
+                "transition": "low"
+            },
+            "historicalFrequency": "น้ำหนุนสูง 3-4 ครั้งต่อปี ช่วง พ.ย.-ม.ค.",
+            "majorEvents": [
+                "high-tide-2019-gulf",
+                "high-tide-2020-pattaya"
+            ]
+        },
+        {
+            "id": "gulf-lower",
+            "name": "อ่าวไทยตอนล่าง",
+            "description": "ชุมพร สุราษฎร์ธานี นครศรีธรรมราช สงขลา",
+            "baseRiskLevel": "high",
+            "monsoonRisk": {
+                "southwest": "medium",
+                "northeast": "high",
+                "transition": "medium"
+            },
+            "historicalFrequency": "น้ำท่วม/พายุ 5-8 ครั้งต่อปี",
+            "majorEvents": [
+                "storm-pabuk-2019",
+                "flood-2017-south",
+                "flood-2010-hat-yai",
+                "storm-harriet-1962",
+                "storm-gay-1989"
+            ]
+        },
+        {
+            "id": "andaman",
+            "name": "ฝั่งอันดามัน",
+            "description": "ระนอง พังงา ภูเก็ต กระบี่ ตรัง สตูล",
+            "baseRiskLevel": "medium",
+            "monsoonRisk": {
+                "southwest": "high",
+                "northeast": "low",
+                "transition": "low"
+            },
+            "historicalFrequency": "คลื่นลมแรง/กัดเซาะ 10-15 ครั้งต่อปี ช่วง พ.ค.-ต.ค.",
+            "majorEvents": [
+                "erosion-phuket-2018"
+            ]
+        }
+    ]
+}

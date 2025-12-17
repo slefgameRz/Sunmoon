@@ -25,6 +25,7 @@ import {
   Radio,
   Anchor,
   TrendingDown,
+  TrendingUp,
   Map,
   History,
   Calendar as CalendarDays,
@@ -83,6 +84,19 @@ import {
   saveWeatherDataCache,
   initializeOfflineStorage,
 } from "@/lib/offline-storage";
+
+// Import water level comparison for flood warnings
+import {
+  compareWaterLevel,
+  type WaterLevelComparison,
+} from "@/lib/water-level-comparison";
+
+// Import elevation service
+import { getElevation } from "@/lib/elevation-service";
+
+import { TideStatusHero } from "./tide-status-hero";
+
+
 
 // Enhanced default values with new properties
 const defaultTideData = {
@@ -167,11 +181,17 @@ export default function EnhancedLocationSelector() {
   const [currentWeatherData, setCurrentWeatherData] =
     useState<WeatherData>(defaultWeatherData);
 
+  // ... existing code ...
+
   const [nearestPierInfo, setNearestPierInfo] = useState<NearestPier | null>(
     null,
   );
   const [geoError, setGeoError] = useState<string | null>(null);
   const [disasterAnalysis, setDisasterAnalysis] = useState<DisasterAnalysis | null>(null);
+  const [waterLevelComparison, setWaterLevelComparison] = useState<WaterLevelComparison | null>(null);
+  const [userElevation, setUserElevation] = useState<number | undefined>(undefined);
+
+
 
   // Update nearest pier information
   const updateNearestPier = useCallback(() => {
@@ -431,6 +451,15 @@ export default function EnhancedLocationSelector() {
   useEffect(() => {
     if (isHydrated) {
       updateNearestPier();
+
+      // Fetch user elevation when locations changes
+      getElevation(selectedLocation.lat, selectedLocation.lon).then(data => {
+        if (data) {
+          setUserElevation(data.elevation);
+        } else {
+          setUserElevation(undefined);
+        }
+      });
     }
   }, [
     selectedLocation.lat,
@@ -438,6 +467,27 @@ export default function EnhancedLocationSelector() {
     isHydrated,
     updateNearestPier,
   ]);
+
+  // Update water level comparison when tide data or location changes
+  useEffect(() => {
+    if (isHydrated && currentTideData && currentTideData.currentWaterLevel > 0) {
+      const comparison = compareWaterLevel(
+        selectedLocation.lat,
+        selectedLocation.lon,
+        currentTideData.currentWaterLevel,
+        userElevation // Pass user elevation
+      );
+      setWaterLevelComparison(comparison);
+    }
+  }, [
+    selectedLocation.lat,
+    selectedLocation.lon,
+    currentTideData.currentWaterLevel,
+    userElevation, // Add dependency
+    isHydrated,
+  ]);
+
+
 
   // Auto-refresh when location coordinates change
   useEffect(() => {
@@ -1216,6 +1266,71 @@ export default function EnhancedLocationSelector() {
                     <DisasterAlert analysis={disasterAnalysis} />
                   )}
 
+                  {/* Flood Warning Banner - แสดงเมื่อระดับน้ำสูงกว่าปกติ */}
+                  {waterLevelComparison && (waterLevelComparison.status === "warning" || waterLevelComparison.status === "critical") && (
+                    <div className={cn(
+                      "p-4 rounded-xl border shadow-lg animate-pulse",
+                      waterLevelComparison.status === "critical"
+                        ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700"
+                        : "bg-orange-50 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700"
+                    )}>
+                      <div className="flex items-start gap-3">
+                        <div className={cn(
+                          "p-2 rounded-full",
+                          waterLevelComparison.status === "critical"
+                            ? "bg-red-100 dark:bg-red-800"
+                            : "bg-orange-100 dark:bg-orange-800"
+                        )}>
+                          <AlertCircle className={cn(
+                            "h-6 w-6",
+                            waterLevelComparison.status === "critical"
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-orange-600 dark:text-orange-400"
+                          )} />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className={cn(
+                            "font-bold text-lg",
+                            waterLevelComparison.status === "critical"
+                              ? "text-red-800 dark:text-red-200"
+                              : "text-orange-800 dark:text-orange-200"
+                          )}>
+                            {waterLevelComparison.status === "critical" ? "🚨 แจ้งเตือนวิกฤต!" : "⚠️ แจ้งเตือน"}
+                          </h3>
+                          <p className={cn(
+                            "text-sm mt-1",
+                            waterLevelComparison.status === "critical"
+                              ? "text-red-700 dark:text-red-300"
+                              : "text-orange-700 dark:text-orange-300"
+                          )}>
+                            {waterLevelComparison.statusText}
+                          </p>
+
+                          {/* Elevation Context */}
+                          {waterLevelComparison.groundElevation !== undefined && (
+                            <div className="mt-2 p-2 bg-white/50 dark:bg-black/20 rounded-lg text-xs">
+                              <p>🏔 พื้นที่สูงจากทะเล: <b>{waterLevelComparison.groundElevation.toFixed(2)} ม.</b> (MSL)</p>
+                              <p>💧 ระดับน้ำทะเล: <b>{waterLevelComparison.currentLevel.toFixed(2)} ม.</b> (MSL)</p>
+                            </div>
+                          )}
+
+                          {waterLevelComparison.referencePoint && waterLevelComparison.groundElevation === undefined && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                              📍 จุดอ้างอิง: {waterLevelComparison.referencePoint.name} ({waterLevelComparison.distanceKm.toFixed(1)} กม.)
+                            </p>
+                          )}
+                          {waterLevelComparison.groundElevation === undefined && (
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              ระดับน้ำปัจจุบัน: {waterLevelComparison.currentLevel.toFixed(2)} ม. | MSL อ้างอิง: {waterLevelComparison.referenceLevel.toFixed(2)} ม.
+                            </p>
+                          )}
+
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+
                   {/* Quick Actions Bar */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white dark:bg-slate-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
                     <div>
@@ -1346,11 +1461,42 @@ export default function EnhancedLocationSelector() {
                     </Card>
                   )}
 
+                  {/* Hero Status Display - Clear & Focused */}
+                  <div className="mb-6">
+                    <TideStatusHero
+                      status={currentTideData.waterLevelStatus}
+                      currentLevel={currentTideData.currentWaterLevel}
+                      nextEvent={(() => {
+                        if (!currentTideData.tideEvents) return undefined;
+                        const now = new Date();
+                        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                        const next = currentTideData.tideEvents.find(e => {
+                          const [h, m] = e.time.split(':').map(Number);
+                          return (h * 60 + m) > currentMinutes;
+                        });
+                        return next ? {
+                          type: next.type,
+                          time: next.time,
+                          level: next.level
+                        } : undefined;
+                      })()}
+                      dataSource={currentTideData.dataSource}
+                    />
+                  </div>
+
                   {/* Consolidated Water Level Experience */}
-                  {currentTideData.graphData &&
-                    currentTideData.graphData.length > 0 && (
-                      <WaterLevelGraph tideData={currentTideData} location={selectedLocation} />
-                    )}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      <h3 className="font-bold text-gray-900 dark:text-gray-100">
+                        กราฟระดับน้ำ (24 ชั่วโมง)
+                      </h3>
+                    </div>
+                    {currentTideData.graphData &&
+                      currentTideData.graphData.length > 0 && (
+                        <WaterLevelGraph tideData={currentTideData} location={selectedLocation} />
+                      )}
+                  </div>
 
                   {/* Status Footer */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">

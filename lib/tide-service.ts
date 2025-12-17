@@ -8,18 +8,18 @@ type MoonEvent = {
 
 const authoritativeMoonEvents: MoonEvent[] = Array.isArray(moonEventSource)
   ? moonEventSource
-      .map((event) => ({ type: event?.type, date: event?.date }))
-      .filter((event): event is MoonEvent => {
-        if (event?.type !== "new" && event?.type !== "full") {
-          return false;
-        }
-        if (typeof event.date !== "string") {
-          return false;
-        }
-        const asDate = new Date(event.date);
-        return !Number.isNaN(asDate.getTime());
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map((event) => ({ type: event?.type, date: event?.date }))
+    .filter((event): event is MoonEvent => {
+      if (event?.type !== "new" && event?.type !== "full") {
+        return false;
+      }
+      if (typeof event.date !== "string") {
+        return false;
+      }
+      const asDate = new Date(event.date);
+      return !Number.isNaN(asDate.getTime());
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   : [];
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -28,7 +28,7 @@ const THAILAND_TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
 function toThailandDayStart(date: Date): number {
   return (
     Math.floor((date.getTime() + THAILAND_TZ_OFFSET_MS) / MS_PER_DAY) *
-      MS_PER_DAY -
+    MS_PER_DAY -
     THAILAND_TZ_OFFSET_MS
   );
 }
@@ -86,6 +86,7 @@ export type TideData = {
   apiStatusMessage: string; // Status message
   lastUpdated: string; // Last update timestamp
   isFromCache?: boolean; // Indicates if data is from cache
+  dataSource?: string; // Source of the data (e.g., "WorldTides", "Hydrographic Dept", "Harmonic Model")
 };
 
 export type WeatherData = {
@@ -160,23 +161,23 @@ export async function calculateLunarPhase(
       const waxingSpanDays =
         nextFullStart !== null && previousNewStart !== null
           ? Math.min(
-              15,
-              Math.max(
-                14,
-                Math.floor((nextFullStart - previousNewStart) / MS_PER_DAY),
-              ),
-            )
+            15,
+            Math.max(
+              14,
+              Math.floor((nextFullStart - previousNewStart) / MS_PER_DAY),
+            ),
+          )
           : 15;
 
       const waningSpanDays =
         previousFullStart !== null && nextNewStart !== null
           ? Math.min(
-              15,
-              Math.max(
-                14,
-                Math.floor((nextNewStart - previousFullStart) / MS_PER_DAY),
-              ),
-            )
+            15,
+            Math.max(
+              14,
+              Math.floor((nextNewStart - previousFullStart) / MS_PER_DAY),
+            ),
+          )
           : 15;
 
       const isWaxingMoon = previousEvent.type === "new";
@@ -435,12 +436,35 @@ function calculateTideStatus(lunarPhaseKham: number): "น้ำเป็น" | 
 /**
  * Fetch real tide data from WorldTides API or use harmonic prediction as fallback
  */
+import { fetchHydroTideData } from "./hydro-service";
+
+// ... existing code ...
+
+/**
+ * Fetch real tide data from WorldTides API or use harmonic prediction as fallback
+ */
 async function fetchRealTideData(
   location: LocationData,
   date: Date,
-): Promise<TideEvent[]> {
-  // Try multiple free APIs before falling back to harmonic predictio_n
+): Promise<{ events: TideEvent[], source: string }> {
+  // 1. Try Hydrographic Department (Official Source)
+  try {
+    const officialData = await fetchHydroTideData(date, location.lat, location.lon);
+    if (officialData && officialData.events.length > 0) {
+      console.log(`Using official Hydrographic Dept data from ${officialData.stationName} (${officialData.distanceKm} km)`);
+      console.log("Using official Hydrographic Dept data");
+      return {
+        events: sortTideEvents(officialData.events),
+        source: officialData.source
+      };
+    }
+  } catch (error) {
+    console.warn("Failed to fetch official hydro data:", error);
+  }
+
+  // 2. Try multiple free APIs before falling back to harmonic prediction
   let worldTidesApiKey: string | undefined;
+
   let stormglassApiKey: string | undefined;
 
   if (typeof process !== "undefined" && process.env) {
@@ -471,7 +495,10 @@ async function fetchRealTideData(
             .map(toTideEventFromWorldTides)
             .filter((event): event is TideEvent => event !== null);
           if (events.length > 0) {
-            return sortTideEvents(events);
+            return {
+              events: sortTideEvents(events),
+              source: "WorldTides API"
+            };
           }
         }
       }
@@ -509,7 +536,10 @@ async function fetchRealTideData(
             .map(toTideEventFromStormglass)
             .filter((event): event is TideEvent => event !== null);
           if (events.length > 0) {
-            return sortTideEvents(events);
+            return {
+              events: sortTideEvents(events),
+              source: "Stormglass API"
+            };
           }
         }
       }
@@ -519,7 +549,11 @@ async function fetchRealTideData(
   }
 
   // Fallback to harmonic prediction for Thai coastal areas (Works great without any API!)
-  return generateHarmonicTidePrediction(location, date);
+  console.log("Using Harmonic Model prediction (no external API available)");
+  return {
+    events: generateHarmonicTidePrediction(location, date),
+    source: "Harmonic Model (กรมอุทกศาสตร์ สถานี 28 แห่ง)"
+  };
 }
 
 /**
@@ -894,20 +928,20 @@ function getApiStatus(): { status: ApiStatus; message: string } {
     message: string;
     probability: number;
   }> = [
-    { status: "success", message: "ข้อมูลอัปเดตเรียบร้อย", probability: 0.8 },
-    { status: "loading", message: "กำลังโหลดข้อมูล...", probability: 0.1 },
-    {
-      status: "error",
-      message: "เกิดข้อผิดพลาดในการโหลดข้อมูล",
-      probability: 0.05,
-    },
-    { status: "timeout", message: "การเชื่อมต่อหมดเวลา", probability: 0.03 },
-    {
-      status: "offline",
-      message: "ไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้",
-      probability: 0.02,
-    },
-  ];
+      { status: "success", message: "ข้อมูลอัปเดตเรียบร้อย", probability: 0.8 },
+      { status: "loading", message: "กำลังโหลดข้อมูล...", probability: 0.1 },
+      {
+        status: "error",
+        message: "เกิดข้อผิดพลาดในการโหลดข้อมูล",
+        probability: 0.05,
+      },
+      { status: "timeout", message: "การเชื่อมต่อหมดเวลา", probability: 0.03 },
+      {
+        status: "offline",
+        message: "ไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้",
+        probability: 0.02,
+      },
+    ];
 
   const random = Math.random();
   let cumulative = 0;
@@ -936,7 +970,7 @@ export async function getTideData(
     const tideStatus = calculateTideStatus(lunarPhaseKham);
 
     // Fetch real tide events
-    const tideEvents = await fetchRealTideData(location, date);
+    const { events: tideEvents, source: dataSource } = await fetchRealTideData(location, date);
 
     // Calculate current water level directly from harmonic engine
     // (More accurate than interpolating between events)
@@ -946,18 +980,18 @@ export async function getTideData(
         const now = new Date();
         return { hour: now.getHours(), minute: now.getMinutes() };
       })();
-    
+
     // Use harmonic prediction for accurate current level (if available)
     let currentWaterLevel: number
     let waterLevelStatus: string
-    
+
     // Try to use harmonic prediction if we have it
     try {
       // Import here to avoid circular dependency
       const { predictTideLevel } = await import('./harmonic-engine');
       const result = predictTideLevel(date, location, currentTime);
       currentWaterLevel = result.level;
-      
+
       // Determine status from surrounding tide events
       const surrounding = getSurroundingTideEvents(tideEvents, currentTime);
       if (surrounding.prev && surrounding.next) {
@@ -1021,6 +1055,7 @@ export async function getTideData(
       apiStatus,
       apiStatusMessage,
       lastUpdated,
+      dataSource,
     };
   } catch (error) {
     console.error("Error in getTideData:", error);

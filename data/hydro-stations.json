@@ -1,0 +1,226 @@
+[
+  {
+    "id": "hydro-1",
+    "name": "ท่าเรือกรุงเทพ",
+    "nameTh": "ท่าเรือกรุงเทพ",
+    "lat": 13.702817,
+    "lon": 100.58025236193,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-2",
+    "name": "บางประกง",
+    "nameTh": "บางประกง",
+    "lat": 13.5018391,
+    "lon": 101.0056737,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-3",
+    "name": "กองบัญชาการกองทัพเรือ",
+    "nameTh": "กองบัญชาการกองทัพเรือ",
+    "lat": 13.7491169,
+    "lon": 100.4808751,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-4",
+    "name": "หัวหิน",
+    "nameTh": "หัวหิน",
+    "lat": 12.5646241,
+    "lon": 99.9551707,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-5",
+    "name": "ปากน้ำกระบี่",
+    "nameTh": "ปากน้ำกระบี่",
+    "lat": 8.0758642,
+    "lon": 98.9152065,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-6",
+    "name": "เกาะหลัก",
+    "nameTh": "เกาะหลัก",
+    "lat": 10.3805959,
+    "lon": 99.328045505593,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-7",
+    "name": "คุระบุรี",
+    "nameTh": "คุระบุรี",
+    "lat": 9.1927145,
+    "lon": 98.4137797,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-8",
+    "name": "ตรัง",
+    "nameTh": "ตรัง",
+    "lat": 7.5544139,
+    "lon": 99.6044951,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-9",
+    "name": "แหลมงอบ",
+    "nameTh": "แหลมงอบ",
+    "lat": 12.1718717,
+    "lon": 102.3938881,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-10",
+    "name": "แหลมสิงห์",
+    "nameTh": "แหลมสิงห์",
+    "lat": 12.4829002,
+    "lon": 102.0669053,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-11",
+    "name": "ปากน้ำแม่กลอง",
+    "nameTh": "ปากน้ำแม่กลอง",
+    "lat": 13.9393362,
+    "lon": 99.6854031,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-12",
+    "name": "เกาะมัตโพน",
+    "nameTh": "เกาะมัตโพน",
+    "lat": 10.450231602855,
+    "lon": 99.2536311296,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-13",
+    "name": "นราธิวาส",
+    "nameTh": "นราธิวาส",
+    "lat": 6.4350352,
+    "lon": 101.8228923,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-14",
+    "name": "ป้อมพระจุลจอมเกล้า",
+    "nameTh": "ป้อมพระจุลจอมเกล้า",
+    "lat": 13.53721985,
+    "lon": 100.57900677296,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-15",
+    "name": "ปัตตานี",
+    "nameTh": "ปัตตานี",
+    "lat": 6.8680798,
+    "lon": 101.253623,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-16",
+    "name": "ปากพนัง",
+    "nameTh": "ปากพนัง",
+    "lat": 8.3476389,
+    "lon": 100.1996122,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-17",
+    "name": "หาดระยอง",
+    "nameTh": "หาดระยอง",
+    "lat": 12.6643686,
+    "lon": 101.240408,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-18",
+    "name": "ระนอง",
+    "nameTh": "ระนอง",
+    "lat": 9.964128,
+    "lon": 98.6340038,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-19",
+    "name": "เกาะสีชัง",
+    "nameTh": "เกาะสีชัง",
+    "lat": 13.1599381,
+    "lon": 100.8096189,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-20",
+    "name": "สงขลา",
+    "nameTh": "สงขลา",
+    "lat": 7.1973429,
+    "lon": 100.593205,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-21",
+    "name": "เกาะสมุย",
+    "nameTh": "เกาะสมุย",
+    "lat": 9.50139445,
+    "lon": 99.9956192732,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-22",
+    "name": "ปากน้ำท่าจีน",
+    "nameTh": "ปากน้ำท่าจีน",
+    "lat": 14.0116895,
+    "lon": 99.5373582,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-23",
+    "name": "เกาะตะเภาน้อย",
+    "nameTh": "เกาะตะเภาน้อย",
+    "lat": 7.8337008,
+    "lon": 98.423425085766,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-24",
+    "name": "อ่าวสัตหีบ",
+    "nameTh": "อ่าวสัตหีบ",
+    "lat": 12.663982,
+    "lon": 100.9003752,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-25",
+    "name": "อ่าวทับละมุ",
+    "nameTh": "อ่าวทับละมุ",
+    "lat": 8.5689479,
+    "lon": 98.2269523,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-26",
+    "name": "หาดมาบตาพุต",
+    "nameTh": "หาดมาบตาพุต",
+    "lat": 12.7107843,
+    "lon": 101.0403204,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-27",
+    "name": "เกาะปราบ",
+    "nameTh": "เกาะปราบ",
+    "lat": 9.2650202320988,
+    "lon": 99.432255711587,
+    "source": "Hydrographic Department"
+  },
+  {
+    "id": "hydro-28",
+    "name": "เกาะตะรุเตา",
+    "nameTh": "เกาะตะรุเตา",
+    "lat": 6.6206601,
+    "lon": 99.646945329265,
+    "source": "Hydrographic Department"
+  }
+]

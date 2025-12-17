@@ -6,6 +6,8 @@
     "latitude": 13.0858,
     "longitude": 100.8945,
     "mslHeightMeters": 0.62,
+    "warningThresholdMeters": 0.25,
+    "floodThresholdMeters": 0.45,
     "reference": "กรมเจ้าท่า ชุดข้อมูลอ้างอิงระดับน้ำทะเล ปี 2566"
   },
   {
@@ -15,6 +17,8 @@
     "latitude": 13.1523,
     "longitude": 100.8081,
     "mslHeightMeters": 0.55,
+    "warningThresholdMeters": 0.20,
+    "floodThresholdMeters": 0.40,
     "reference": "สถาบันสารสนเทศทรัพยากรน้ำ (องค์การมหาชน)",
     "note": "ระดับน้ำทะเลเฉลี่ย (MSL) คำนวณจากข้อมูลจุดตรวจวัดของกรมอุทกศาสตร์"
   },
@@ -25,6 +29,8 @@
     "latitude": 13.3017,
     "longitude": 100.9242,
     "mslHeightMeters": 0.47,
+    "warningThresholdMeters": 0.20,
+    "floodThresholdMeters": 0.35,
     "reference": "กรมอุทกศาสตร์กองทัพเรือ, เครือข่ายสถานีตรวจวัดระดับน้ำ 2565",
     "note": "ปรับแก้ค่าอ้างอิงเทียบกับเกณฑ์ MSL ของกรมเจ้าท่า"
   },
@@ -35,6 +41,8 @@
     "latitude": 13.3033,
     "longitude": 100.9317,
     "mslHeightMeters": 0.50,
+    "warningThresholdMeters": 0.20,
+    "floodThresholdMeters": 0.38,
     "reference": "กรมอุทกศาสตร์กองทัพเรือ รายงานระดับน้ำทะเล ชุดปี 2564-2566"
   },
   {
@@ -44,6 +52,8 @@
     "latitude": 12.9339,
     "longitude": 100.8830,
     "mslHeightMeters": 0.58,
+    "warningThresholdMeters": 0.22,
+    "floodThresholdMeters": 0.42,
     "reference": "กรมเจ้าท่า, Thailand Marine GIS 2024",
     "note": "ค่าระดับน้ำเฉลี่ยอิงจากสถานีตรวจวัด JICA-DOH"
   },
@@ -54,6 +64,8 @@
     "latitude": 12.9528,
     "longitude": 100.8881,
     "mslHeightMeters": 0.60,
+    "warningThresholdMeters": 0.22,
+    "floodThresholdMeters": 0.42,
     "reference": "กรมอุทกศาสตร์, โครงการพัฒนาระบบสารสนเทศระดับน้ำทะเล 2567"
   }
 ]

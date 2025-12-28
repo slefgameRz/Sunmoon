@@ -25,7 +25,9 @@ export default function MapSelector({ isOpen, currentLocation, onSelectLocationA
     setMarkerPosition(currentLocation)
   }, [currentLocation, isOpen])
 
-  const center = useMemo(() => [markerPosition.lat, markerPosition.lon] as [number, number], [markerPosition])
+  const center = useMemo(() => {
+    return markerPosition ? [markerPosition.lat, markerPosition.lon] as [number, number] : [13.7563, 100.5018] as [number, number];
+  }, [markerPosition])
 
   const handleMapClick = useCallback(({ latLng }: { latLng: [number, number] }) => {
     const [lat, lon] = latLng
@@ -85,15 +87,17 @@ export default function MapSelector({ isOpen, currentLocation, onSelectLocationA
             </DialogHeader>
 
             <div className="mt-2 h-72 rounded-md overflow-hidden border">
-              <PigeonMap center={center} zoom={9} onClick={handleMapClick} attributionPrefix={false} dprs={[1,2]} boxClassname="w-full h-full">
+              <PigeonMap center={center} zoom={9} onClick={handleMapClick} attributionPrefix={false} dprs={[1, 2] as [number, number]} boxClassname="w-full h-full">
                 <Marker anchor={center} />
               </PigeonMap>
             </div>
 
             <div className="mt-2 flex items-center justify-between">
               <div className="text-sm">
-                <div className="font-medium">{markerPosition.name}</div>
-                <div className="text-xs text-muted-foreground">{markerPosition.lat.toFixed(4)}, {markerPosition.lon.toFixed(4)}</div>
+                <div className="font-medium">{markerPosition?.name || "ไม่ระบุตำแหน่ง"}</div>
+                <div className="text-xs text-muted-foreground">
+                  {markerPosition?.lat ? markerPosition.lat.toFixed(4) : "0.0000"}, {markerPosition?.lon ? markerPosition.lon.toFixed(4) : "0.0000"}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={onCloseAction}>ยกเลิก</Button>

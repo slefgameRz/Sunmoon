@@ -314,7 +314,12 @@ function toTideEventFromWorldTides(
   if (Number.isNaN(eventDate.getTime())) {
     return null;
   }
-  const time = eventDate.toISOString().substring(11, 16);
+  // Convert UTC to Thailand time (UTC+7)
+  const thailandOffsetMs = 7 * 60 * 60 * 1000;
+  const thailandDate = new Date(eventDate.getTime() + thailandOffsetMs);
+  const hours = thailandDate.getUTCHours().toString().padStart(2, '0');
+  const minutes = thailandDate.getUTCMinutes().toString().padStart(2, '0');
+  const time = `${hours}:${minutes}`;
   return {
     time,
     level: Number.parseFloat(extreme.height.toFixed(2)),
@@ -332,7 +337,12 @@ function toTideEventFromStormglass(
   if (Number.isNaN(eventDate.getTime())) {
     return null;
   }
-  const time = eventDate.toISOString().substring(11, 16);
+  // Convert UTC to Thailand time (UTC+7)
+  const thailandOffsetMs = 7 * 60 * 60 * 1000;
+  const thailandDate = new Date(eventDate.getTime() + thailandOffsetMs);
+  const hours = thailandDate.getUTCHours().toString().padStart(2, '0');
+  const minutes = thailandDate.getUTCMinutes().toString().padStart(2, '0');
+  const time = `${hours}:${minutes}`;
   const type =
     typeof extreme.type === "string"
       ? normaliseTideType(extreme.type)
@@ -920,39 +930,14 @@ function generateWaterLevelGraphData(
 
 /**
  * Get API status based on various conditions
+ * 
+ * Note: This function now always returns success.
+ * Error states should be set by actual error handlers in the calling code,
+ * not randomly simulated here. Previously, this function used random probability
+ * to return error states, which caused confusing behavior for users.
  */
 function getApiStatus(): { status: ApiStatus; message: string } {
-  // Simulate different API statuses
-  const statuses: Array<{
-    status: ApiStatus;
-    message: string;
-    probability: number;
-  }> = [
-      { status: "success", message: "ข้อมูลอัปเดตเรียบร้อย", probability: 0.8 },
-      { status: "loading", message: "กำลังโหลดข้อมูล...", probability: 0.1 },
-      {
-        status: "error",
-        message: "เกิดข้อผิดพลาดในการโหลดข้อมูล",
-        probability: 0.05,
-      },
-      { status: "timeout", message: "การเชื่อมต่อหมดเวลา", probability: 0.03 },
-      {
-        status: "offline",
-        message: "ไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้",
-        probability: 0.02,
-      },
-    ];
-
-  const random = Math.random();
-  let cumulative = 0;
-
-  for (const statusObj of statuses) {
-    cumulative += statusObj.probability;
-    if (random <= cumulative) {
-      return { status: statusObj.status, message: statusObj.message };
-    }
-  }
-
+  // Always return success - actual errors should be caught and reported by the calling code
   return { status: "success", message: "ข้อมูลอัปเดตเรียบร้อย" };
 }
 
@@ -1144,44 +1129,10 @@ export async function getWeatherData(
     }
   }
 
-  // Fallback to simulated weather data if API fails
-  console.log("Using simulated weather data as fallback");
-
-  // Simulate API call delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  // Simulate weather data with realistic values for Thailand
-  const simulatedTemp = 26.5 + Math.random() * 8; // 26.5-34.5°C
-  const simulatedFeelsLike = simulatedTemp + 0.5; // Slightly warmer
-  const simulatedHumidity = 65 + Math.random() * 25; // 65-90%
-  const simulatedPressure = 1008 + Math.random() * 8; // 1008-1016 hPa
-  const simulatedWindSpeed = 1 + Math.random() * 5; // 1-6 m/s
-  const simulatedWindDeg = Math.random() * 360; // Random direction
-
-  const weatherConditions = [
-    { description: "ท้องฟ้าแจ่มใส", icon: "01d" },
-    { description: "มีเมฆบางส่วน", icon: "02d" },
-    { description: "เมฆกระจัดกระจาย", icon: "03d" },
-    { description: "เมฆมาก", icon: "04d" },
-    { description: "ฝนตกปรอยๆ", icon: "09d" },
-    { description: "ฝนตก", icon: "10d" },
-    { description: "พายุฝนฟ้าคะนอง", icon: "11d" },
-  ];
-  const randomWeather =
-    weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
-
-  return {
-    main: {
-      temp: Number.parseFloat(simulatedTemp.toFixed(1)),
-      feels_like: Number.parseFloat(simulatedFeelsLike.toFixed(1)),
-      humidity: Math.floor(simulatedHumidity),
-      pressure: Math.floor(simulatedPressure),
-    },
-    weather: [randomWeather],
-    wind: {
-      speed: Number.parseFloat(simulatedWindSpeed.toFixed(1)),
-      deg: simulatedWindDeg,
-    },
-    name: location.name,
-  };
+  // No fallback - throw error if API fails or key is missing
+  const errorMessage = apiKey
+    ? "OpenWeatherMap API failed - unable to fetch real weather data"
+    : "OPENWEATHER_API_KEY is not configured - please add it to .env";
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 }

@@ -18,6 +18,7 @@ export interface ThaiWaterResponse {
 /**
  * Fetch real-time water level data from ThaiWater Open API
  * Using the public Runoff endpoint which is often accessible
+ * NO MOCK DATA - returns empty array if API fails
  */
 export async function getRealTimeWaterLevels(): Promise<ThaiWaterLevel[]> {
     try {
@@ -33,8 +34,8 @@ export async function getRealTimeWaterLevels(): Promise<ThaiWaterLevel[]> {
         });
 
         if (!response.ok) {
-            console.warn('Failed to fetch from ThaiWater API, using mock data for demo');
-            return getMockWaterLevels();
+            console.error('ThaiWater API returned error:', response.status, response.statusText);
+            return []; // Return empty array instead of mock data
         }
 
         const data = await response.json();
@@ -56,88 +57,10 @@ export async function getRealTimeWaterLevels(): Promise<ThaiWaterLevel[]> {
             return data.result;
         }
 
-        return getMockWaterLevels();
+        console.warn('ThaiWater API returned unexpected format');
+        return []; // Return empty array instead of mock data
     } catch (error) {
         console.error('Error fetching ThaiWater data:', error);
-        return getMockWaterLevels();
+        return []; // Return empty array instead of mock data
     }
-}
-
-// Fallback mock data with realistic locations for coastal areas
-function getMockWaterLevels(): ThaiWaterLevel[] {
-    const now = new Date().toISOString();
-    return [
-        {
-            station_id: "MOCK-001",
-            station_name: "สถานีปากแม่น้ำเจ้าพระยา (ป้อมพระจุลฯ)",
-            province_name: "สมุทรปราการ",
-            water_level: 2.35,
-            timestamp: now,
-            lat: 13.5381,
-            lon: 100.5894
-        },
-        {
-            station_id: "MOCK-002",
-            station_name: "สถานีเกาะสีชัง",
-            province_name: "ชลบุรี",
-            water_level: 1.85,
-            timestamp: now,
-            lat: 13.1554,
-            lon: 100.8173
-        },
-        {
-            station_id: "MOCK-003",
-            station_name: "สถานีหัวหิน",
-            province_name: "ประจวบคีรีขันธ์",
-            water_level: 1.45,
-            timestamp: now,
-            lat: 12.5684,
-            lon: 99.9577
-        },
-        {
-            station_id: "MOCK-004",
-            station_name: "สถานีแหลมงอบ",
-            province_name: "ตราด",
-            water_level: 1.20,
-            timestamp: now,
-            lat: 12.1706,
-            lon: 102.3923
-        },
-        {
-            station_id: "MOCK-005",
-            station_name: "สถานีปากน้ำหลังสวน",
-            province_name: "ชุมพร",
-            water_level: 1.10,
-            timestamp: now,
-            lat: 9.9442,
-            lon: 99.1722
-        },
-        {
-            station_id: "MOCK-006",
-            station_name: "สถานีเกาะภูเก็ต",
-            province_name: "ภูเก็ต",
-            water_level: 2.10,
-            timestamp: now,
-            lat: 7.8247,
-            lon: 98.4042
-        },
-        {
-            station_id: "MOCK-007",
-            station_name: "สถานีปากน้ำระนอง",
-            province_name: "ระนอง",
-            water_level: 2.45,
-            timestamp: now,
-            lat: 9.9650,
-            lon: 98.5958
-        },
-        {
-            station_id: "MOCK-008",
-            station_name: "สถานีท่าเรือคลองเตย",
-            province_name: "กรุงเทพมหานคร",
-            water_level: 1.95,
-            timestamp: now,
-            lat: 13.7028,
-            lon: 100.5698
-        }
-    ];
 }

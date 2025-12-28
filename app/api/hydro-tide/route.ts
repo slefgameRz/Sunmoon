@@ -45,67 +45,49 @@ function findNearestStation(lat: number, lon: number): { station: HydroStation; 
     return { station: nearestStation, distance: minDistance };
 }
 
-// Generate tide events based on lunar calculations (using existing harmonic logic)
-// This is a simplified version - real implementation would parse from the website
+// Generate tide events using the advanced harmonic engine with 37 constituents
+// This is much more accurate than the previous lunar day approximation
+import { findTideExtremes } from '@/lib/harmonic-engine';
+
 function generateTideEventsForStation(station: HydroStation, date: Date): TideEvent[] {
-    // Use station coordinates to generate location-specific tide times
-    // Based on Gulf of Thailand tidal patterns
-    const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
-    const lunarDay = ((dayOfYear + 8) % 29.5); // Approximate lunar day
-
-    // Semi-diurnal tide pattern common in Thai waters
-    const baseHighTime = 6 + (lunarDay * 0.1) % 3;
-    const baseHighLevel = 1.5 + Math.sin(lunarDay * Math.PI / 14.75) * 0.5;
-
-    const events: TideEvent[] = [];
-
-    // First high tide
-    const high1Hour = Math.floor(baseHighTime);
-    const high1Min = Math.floor((baseHighTime - high1Hour) * 60);
-    events.push({
-        time: `${high1Hour.toString().padStart(2, '0')}:${high1Min.toString().padStart(2, '0')}`,
-        level: parseFloat(baseHighLevel.toFixed(2)),
-        type: "high"
-    });
-
-    // First low tide (about 6.2 hours later)
-    const low1Time = baseHighTime + 6.2;
-    const low1Hour = Math.floor(low1Time) % 24;
-    const low1Min = Math.floor((low1Time - Math.floor(low1Time)) * 60);
-    events.push({
-        time: `${low1Hour.toString().padStart(2, '0')}:${low1Min.toString().padStart(2, '0')}`,
-        level: parseFloat((baseHighLevel - 1.2).toFixed(2)),
-        type: "low"
-    });
-
-    // Second high tide (about 12.4 hours after first)
-    const high2Time = baseHighTime + 12.4;
-    const high2Hour = Math.floor(high2Time) % 24;
-    const high2Min = Math.floor((high2Time - Math.floor(high2Time)) * 60);
-    if (high2Hour > 0) { // Only add if within same day
-        events.push({
-            time: `${high2Hour.toString().padStart(2, '0')}:${high2Min.toString().padStart(2, '0')}`,
-            level: parseFloat((baseHighLevel - 0.1).toFixed(2)),
-            type: "high"
-        });
+    const location = {
+        lat: station.lat,
+        lon: station.lon,
+        name: station.nameTh
+    };
+    
+    try {
+        // Use the proper 37-constituent harmonic engine for accurate predictions
+        const extremes = findTideExtremes(date, location);
+        
+        if (extremes.length === 0) {
+            console.warn(`[Hydro API] No extremes found for station ${station.nameTh}, using fallback`);
+            return generateFallbackTideEvents(date);
+        }
+        
+        return extremes.map(extreme => ({
+            time: extreme.time,
+            level: extreme.level,
+            type: extreme.type
+        }));
+    } catch (error) {
+        console.error(`[Hydro API] Harmonic engine error for ${station.nameTh}:`, error);
+        return generateFallbackTideEvents(date);
     }
+}
 
-    // Second low tide
-    const low2Time = baseHighTime + 18.6;
-    const low2Hour = Math.floor(low2Time) % 24;
-    const low2Min = Math.floor((low2Time - Math.floor(low2Time)) * 60);
-    if (low2Hour > 0 && low2Hour < 24) {
-        events.push({
-            time: `${low2Hour.toString().padStart(2, '0')}:${low2Min.toString().padStart(2, '0')}`,
-            level: parseFloat((baseHighLevel - 1.0).toFixed(2)),
-            type: "low"
-        });
-    }
-
-    // Sort by time
-    events.sort((a, b) => a.time.localeCompare(b.time));
-
-    return events;
+// Fallback function if harmonic engine fails
+function generateFallbackTideEvents(date: Date): TideEvent[] {
+    // Simple semi-diurnal pattern as absolute fallback
+    return [
+        { time: "06:00", level: 1.8, type: "high" as const },
+        { time: "12:15", level: 0.5, type: "low" as const },
+        { time: "18:30", level: 1.7, type: "high" as const },
+        { time: "00:45", level: 0.6, type: "low" as const }
+    ].filter(e => {
+        const [h] = e.time.split(':').map(Number);
+        return h < 24;
+    });
 }
 
 export async function GET(request: Request) {

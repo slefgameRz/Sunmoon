@@ -349,12 +349,21 @@ function createErosionDisaster(tideData: TideData, weatherData: WeatherData, pro
 
 /**
  * วิเคราะห์ความเสี่ยงภัยพิบัติจากข้อมูลน้ำและอากาศ
+ * 
+ * @param tideData - ข้อมูลน้ำขึ้นน้ำลง
+ * @param weatherData - ข้อมูลสภาพอากาศ
+ * @param date - วันที่วิเคราะห์
+ * @param locationName - ชื่อตำแหน่ง
+ * @param groundElevation - ระดับความสูงพื้นดินของผู้ใช้ (เมตร จากระดับน้ำทะเล)
+ *                          ค่าบวก = พื้นที่สูงกว่าระดับน้ำทะเล
+ *                          ค่าลบ = พื้นที่ต่ำกว่าระดับน้ำทะเล (เสี่ยงน้ำท่วมมาก)
  */
 export function analyzeDisasterRisk(
   tideData: TideData,
   weatherData: WeatherData,
   date: Date = new Date(),
-  locationName: string = 'ตำแหน่งที่เลือก'
+  locationName: string = 'ตำแหน่งที่เลือก',
+  groundElevation: number = 0  // Default: at sea level
 ): DisasterAnalysis {
   const disasters: DisasterInfo[] = [];
   const factors: RiskFactor[] = [];
@@ -366,6 +375,15 @@ export function analyzeDisasterRisk(
   const monsoon = getMonsoonSeason(date);
   const windSpeed = weatherData.wind.speed;
   const pressure = weatherData.main.pressure;
+
+  // ============ คำนวณความสูงสัมพัทธ์ของน้ำเทียบกับพื้นที่ผู้ใช้ ============
+  // floodMargin > 0 = น้ำจะท่วม, floodMargin < 0 = ยังไม่ท่วม
+  const floodMargin = maxTideLevel - groundElevation;
+  
+  // ปรับ threshold ตามระดับพื้นดิน
+  // ถ้าพื้นที่ต่ำกว่าทะเล (groundElevation < 0) จะเสี่ยงมากขึ้น
+  const effectiveHighTideThreshold = THRESHOLDS.HIGH_TIDE_LEVEL - groundElevation;
+  const effectiveCriticalThreshold = THRESHOLDS.CRITICAL_TIDE_LEVEL - groundElevation;
 
   // ============ วิเคราะห์ปัจจัยเสี่ยง ============
 
@@ -383,20 +401,29 @@ export function analyzeDisasterRisk(
     icon: 'Moon',
   });
 
-  // 2. ระดับน้ำสูงสุด
-  const tideRiskContribution = maxTideLevel >= THRESHOLDS.CRITICAL_TIDE_LEVEL ? 30
-    : maxTideLevel >= THRESHOLDS.HIGH_TIDE_LEVEL ? 20 : 10;
+  // 2. ระดับน้ำสูงสุด (เทียบกับระดับพื้นดินของผู้ใช้)
+  // floodMargin > 0 หมายถึงน้ำสูงกว่าพื้นที่ผู้ใช้ (จะท่วม)
+  const isFloodRisk = floodMargin > 0;
+  const isCriticalFloodRisk = floodMargin > 0.5; // น้ำสูงกว่าพื้น 50 ซม.
+  const isHighFloodRisk = floodMargin > 0 && floodMargin <= 0.5; // น้ำสูงกว่าพื้น 0-50 ซม.
+  
+  const tideRiskContribution = isCriticalFloodRisk ? 35
+    : isHighFloodRisk ? 25
+    : maxTideLevel >= THRESHOLDS.HIGH_TIDE_LEVEL ? 15 : 5;
+  
   factors.push({
     id: 'tide_level',
     name: 'ระดับน้ำสูงสุด',
     value: maxTideLevel,
     unit: 'เมตร',
-    description: maxTideLevel >= THRESHOLDS.CRITICAL_TIDE_LEVEL
-      ? `ระดับน้ำสูงมาก (≥${THRESHOLDS.CRITICAL_TIDE_LEVEL}ม.) เสี่ยงน้ำท่วมสูง`
-      : maxTideLevel >= THRESHOLDS.HIGH_TIDE_LEVEL
-        ? `ระดับน้ำค่อนข้างสูง (≥${THRESHOLDS.HIGH_TIDE_LEVEL}ม.) ควรระวัง`
-        : 'ระดับน้ำปกติ',
-    contributeToRisk: maxTideLevel >= THRESHOLDS.HIGH_TIDE_LEVEL,
+    description: isCriticalFloodRisk
+      ? `⚠️ น้ำจะท่วมพื้นที่ของคุณ ${(floodMargin * 100).toFixed(0)} ซม. (ระดับน้ำ ${maxTideLevel.toFixed(2)} ม. > พื้นดิน ${groundElevation.toFixed(2)} ม.)`
+      : isHighFloodRisk
+        ? `น้ำอาจท่วมพื้นที่เล็กน้อย (${(floodMargin * 100).toFixed(0)} ซม.)`
+        : groundElevation > maxTideLevel
+          ? `พื้นที่ปลอดภัย - สูงกว่าระดับน้ำ ${((groundElevation - maxTideLevel) * 100).toFixed(0)} ซม.`
+          : 'ระดับน้ำปกติ',
+    contributeToRisk: isFloodRisk || maxTideLevel >= THRESHOLDS.HIGH_TIDE_LEVEL,
     riskContribution: tideRiskContribution,
     icon: 'Waves',
   });
@@ -475,10 +502,13 @@ export function analyzeDisasterRisk(
     disasters.push(createHighTideDisaster(tideData, prob));
   }
 
-  // น้ำท่วมชายฝั่ง
-  if (maxTideLevel >= THRESHOLDS.HIGH_TIDE_LEVEL &&
-    (tideData.tideStatus === 'น้ำเป็น' || pressure < THRESHOLDS.LOW_PRESSURE)) {
-    const prob = Math.min(80, adjustedRisk);
+  // น้ำท่วมชายฝั่ง - ใช้ floodMargin แทน threshold ตายตัว
+  // จะเตือนเมื่อน้ำจะสูงกว่าพื้นที่ของผู้ใช้ หรือเมื่อมีปัจจัยเสี่ยงอื่นๆ
+  if (isFloodRisk || (maxTideLevel >= THRESHOLDS.HIGH_TIDE_LEVEL &&
+    (tideData.tideStatus === 'น้ำเป็น' || pressure < THRESHOLDS.LOW_PRESSURE))) {
+    // ความน่าจะเป็นสูงขึ้นถ้า floodMargin สูง
+    const floodMarginBonus = isFloodRisk ? Math.min(30, floodMargin * 50) : 0;
+    const prob = Math.min(95, adjustedRisk + floodMarginBonus);
     disasters.push(createFloodDisaster(tideData, weatherData, prob));
   }
 

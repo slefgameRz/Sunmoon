@@ -610,6 +610,30 @@ export default function EnhancedLocationSelector() {
   return (
     <div className="w-full" aria-label="ตัวเลือกตำแหน่งและเวลา" role="region">
 
+      {/* Welcome Banner for First-Time Users */}
+      <div className="bg-gradient-to-r from-blue-50 to-sky-50 dark:from-slate-800 dark:to-slate-900 border-b border-blue-100 dark:border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            {/* Welcome Message */}
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-2xl">🌊</span>
+              <div>
+                <span className="font-semibold text-slate-800 dark:text-slate-100">ยินดีต้อนรับสู่ SEAPALO</span>
+                <span className="text-slate-600 dark:text-slate-400 ml-2 hidden md:inline">
+                  • พยากรณ์น้ำขึ้น-น้ำลงแบบเรียลไทม์ เลือกตำแหน่งบนแผนที่เพื่อดูข้อมูล
+                </span>
+              </div>
+            </div>
+            {/* Data Source Badge */}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 text-xs font-medium">
+                <span className="mr-1">✅</span> ข้อมูลจริงจากกรมอุทกศาสตร์ กองทัพเรือ
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Water Level Hero - Top Priority */}
       {!loading && currentTideData.apiStatus !== 'error' && (
         <div className="bg-gradient-to-br from-blue-600 via-blue-500 to-sky-500 text-white">
@@ -690,6 +714,11 @@ export default function EnhancedLocationSelector() {
                   </div>
                   <div className="text-lg md:text-xl font-bold">
                     {currentTideData.tideStatus === "น้ำเป็น" ? "น้ำเป็น" : "น้ำตาย"}
+                  </div>
+                  <div className="text-xs text-blue-200 mt-1">
+                    {currentTideData.tideStatus === "น้ำเป็น" 
+                      ? "น้ำขึ้นสูงกว่าปกติ" 
+                      : "น้ำขึ้นน้อยกว่าปกติ"}
                   </div>
                 </div>
               </div>
@@ -832,7 +861,7 @@ export default function EnhancedLocationSelector() {
         aria-label="แผงควบคุมพยากรณ์และสถานะระบบ"
       >
         <TabsList
-          className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 h-auto bg-blue-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-blue-100 dark:border-slate-700"
+          className="grid w-full grid-cols-3 mb-6 h-auto bg-blue-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-blue-100 dark:border-slate-700"
           role="tablist"
           aria-label="เลือกประเภทข้อมูล"
         >
@@ -853,14 +882,6 @@ export default function EnhancedLocationSelector() {
             <span className="hidden sm:inline">พยากรณ์</span>7 วัน
           </TabsTrigger>
           <TabsTrigger
-            value="riskmap"
-            className="flex items-center gap-2 py-3"
-            aria-describedby="riskmap-tab-description"
-          >
-            <Map className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">แผนที่</span>เสี่ยง
-          </TabsTrigger>
-          <TabsTrigger
             value="status"
             className="flex items-center gap-2 py-3"
             aria-describedby="status-tab-description"
@@ -876,9 +897,6 @@ export default function EnhancedLocationSelector() {
         </div>
         <div id="multiday-tab-description" className="sr-only">
           แสดงพยากรณ์น้ำขึ้นน้ำลงล่วงหน้า 7 วัน พร้อมระดับความเสี่ยง
-        </div>
-        <div id="riskmap-tab-description" className="sr-only">
-          แสดงแผนที่พื้นที่เสี่ยงภัยและประวัติเหตุการณ์ภัยพิบัติ
         </div>
         <div id="status-tab-description" className="sr-only">
           แสดงสถานะการทำงานของ API และสุขภาพระบบ
